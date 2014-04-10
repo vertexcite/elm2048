@@ -18,10 +18,24 @@ data Input = Move KeyMove
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
 
+--Get the square at a given position
 squareAt : Grid -> (Int, Int) -> Maybe GridSquare
 squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
+  
+--Delete a square from a given position, if it exists
+deleteSquare : (Int, Int) -> Grid -> Grid
+deleteSquare (x,y) = filter (\sq -> not <| sq.x == x && sq.y == y)
+
+--Double the value of a given square
+--Fails if the square does not exist
+doubleSquare : (Int, Int) -> Grid -> Grid
+doubleSquare coords grid = let
+    sq = case squareAt grid coords of
+      Just s -> s
+    removedGrid = deleteSquare coords grid
+  in ({sq | contents <- sq.contents*2} :: removedGrid)
 
 --Convert the list of squares to a form to draw
 drawGrid : Grid -> Form
