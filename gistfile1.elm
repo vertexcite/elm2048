@@ -199,7 +199,7 @@ updateGameState input gs = case (input, gs) of
         else grid
     in case firstFree updatedGrid lst of
       Just (x,y) -> Playing ({contents=2, x=x,y=y}:: updatedGrid)
-      Nothing -> GameLost [] --TODO end game
+      Nothing -> GameLost updatedGrid --TODO end game
   _ -> gs
     
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
