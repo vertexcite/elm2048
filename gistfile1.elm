@@ -170,7 +170,7 @@ firstFree : Grid -> [(Int, Int)] -> Maybe (Int, Int)
 firstFree grid lst = case lst of
   [] -> Nothing
   (h::t) -> case squareAt grid h of
-    Just sq -> Just h
+    Nothing -> Just h
     _ -> firstFree grid t
 
 
