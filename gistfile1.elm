@@ -1,5 +1,6 @@
 import Graphics.Collage as Collage
 import Keyboard
+import Random
 
 --Represent each square of the game
 type GridSquare = {contents: Int, x:Int, y:Int}
@@ -13,7 +14,7 @@ type KeyMove = { x:Int, y:Int }
 --Represent different states the came can be in
 data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
-data Input = Move KeyMove | NoInput
+data Input = Move KeyMove Int Int | NoInput
 
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
@@ -176,7 +177,7 @@ drawSquare square = let
 
 updateGameState : Input -> GameState -> GameState
 updateGameState input gs = case (input, gs) of
-  (Move move, Playing grid) -> 
+  (Move move newx newy, Playing grid) -> 
     if move.x == 1
     then Playing  <| shiftRight <| mergeRight <| shiftRight grid
     else if move.x == -1
@@ -195,7 +196,10 @@ startState =  Playing [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
 
-keyInput = lift Move Keyboard.wasd
+keyInput = let
+    randx = Random.range 1 4 Keyboard.wasd
+    randy = Random.range 1 4 Keyboard.wasd
+  in lift3 Move Keyboard.wasd randx randy
 
 main = let
     gameState = foldp updateGameState startState keyInput
