@@ -178,11 +178,11 @@ updateGameState input gs = case (input, gs) of
     if move.x == 1
     then Playing  <| shiftRight <| mergeRight <| shiftRight grid
     else if move.x == -1
-    then Playing  <| shiftLeft <| mergeLeft <| shiftLeft grid
+    then Playing  <| shiftLeft grid -- <| shiftLeft <| mergeLeft <| shiftLeft grid
     else if move.y == -1
     then Playing  <| shiftDown <| mergeDown <| shiftDown grid
     else if move.y == 1
-    then Playing  <| shiftUp <| mergeUp <| shiftUp grid
+    then Playing <| shiftUp grid -- <| shiftUp <| mergeUp <| shiftUp grid
     else gs
   _ -> gs
     
@@ -199,4 +199,4 @@ main = let
     gameState = foldp updateGameState startState keyInput
     gameForm = lift ( (Collage.scale 10) . drawGame) gameState
     formList = lift (\x -> [x]) gameForm
-   in lift (collage 100 100 ) formList
+   in lift (plainText . show) gameState --lift (collage 100 100 ) formList
