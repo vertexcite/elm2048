@@ -198,7 +198,7 @@ updateGameState input gs = case (input, gs) of
         then  shiftUp <| mergeUp <| shiftUp grid
         else grid
     in case firstFree updatedGrid lst of
-      Just (x,y) -> Playing ({contents=2, x=x,y=y}:: grid)
+      Just (x,y) -> Playing ({contents=2, x=x,y=y}:: updatedGrid)
       Nothing -> GameLost [] --TODO end game
   _ -> gs
     
@@ -225,4 +225,4 @@ main = let
     gameState = foldp updateGameState startState keyInput
     gameForm = lift ( (Collage.scale 10) . drawGame) gameState
     formList = lift (\x -> [x]) gameForm
-   in lift (collage 100 100 ) formList
+   in lift (asText . show) gameState --lift (collage 100 100 ) formList
