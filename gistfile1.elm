@@ -115,6 +115,41 @@ shiftLeft = shift shiftSquareLeft sortLeft
 
 shiftRight = shift shiftSquareRight sortRight
 
+--Functions to look at a given square, and see if it can be merged with
+--the square above (below, left of, right of) it
+
+mergeSquareUp : GridSquare -> Grid -> Grid
+mergeSquareUp sq grid = case squareAt grid (sq.x, sq.y+1) of
+  Nothing -> grid
+  Just adj -> 
+    if adj.contents == sq.contents
+      then doubleSquare (sq.x, sq.y+1) <| deleteSquare (sq.x, sq.y) <| grid
+      else grid
+
+mergeSquareDown : GridSquare -> Grid -> Grid
+mergeSquareDown sq grid = case squareAt grid (sq.x, sq.y-1) of
+  Nothing -> grid
+  Just adj -> 
+    if adj.contents == sq.contents
+      then doubleSquare (sq.x, sq.y-1) <| deleteSquare (sq.x, sq.y) <| grid
+      else grid
+      
+mergeSquareLeft : GridSquare -> Grid -> Grid
+mergeSquareLeft sq grid = case squareAt grid (sq.x-1, sq.y) of
+  Nothing -> grid
+  Just adj -> 
+    if adj.contents == sq.contents
+      then doubleSquare (sq.x-1, sq.y) <| deleteSquare (sq.x, sq.y) <| grid
+      else grid
+      
+mergeSquareRight : GridSquare -> Grid -> Grid
+mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
+  Nothing -> grid
+  Just adj -> 
+    if adj.contents == sq.contents
+      then doubleSquare (sq.x+1, sq.y) <| deleteSquare (sq.x, sq.y) <| grid
+      else grid
+
 
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
