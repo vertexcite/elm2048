@@ -88,17 +88,19 @@ shiftSquareRight sq grid =
 --Except when squares get combined
 --Similar math is performed for left, right, etc.
 
-shiftUp : Grid -> Grid
-shiftUp = id
+shift : (GridSquare -> Grid -> Grid) -> Grid -> Grid
+shift shiftFun grid = let
+    shiftFold = foldr shiftFun []
+  in (apply4 shiftFold) grid --apply 4 times, move as far as can
 
-shiftDown : Grid -> Grid
-shiftDown = id
+shiftUp = shift shiftSquareUp
 
-shiftLeft : Grid -> Grid
-shiftLeft = id
+shiftDown = shift shiftSquareDown
 
-shiftRight : Grid -> Grid
-shiftRight = id
+shiftLeft = shift shiftSquareLeft
+
+shiftRight = shift shiftSquareRight
+
 
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
