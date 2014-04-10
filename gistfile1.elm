@@ -29,6 +29,10 @@ inCol : Int -> GridSquare -> Bool
 inCol col sq = sq.x == col
 
 --Functions to shift the squares for each time the player moves
+--To move down, a square moves to the position in the grid where 
+--Except when squares get combined
+--Similar math is performed for left, right, etc.
+
 shiftUp : Grid -> Grid
 shiftUp = id
 
