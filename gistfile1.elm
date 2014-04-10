@@ -15,6 +15,14 @@ data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
 data Input = Move KeyMove
 
+--Apply a function 4 times, useful for shifting
+apply4 f = f . f . f . f
+
+squareAt : Grid -> (Int, Int) -> Maybe GridSquare
+squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
+  [] -> Nothing
+  [sq] -> Just sq
+
 --Convert the list of squares to a form to draw
 drawGrid : Grid -> Form
 drawGrid grid = let
@@ -27,6 +35,53 @@ inRow row sq = sq.y == row
 
 inCol : Int -> GridSquare -> Bool
 inCol col sq = sq.x == col
+
+--Functions to sort elements from top to bottom, bottom to top, etc
+--Useful for shifting elements in the right order
+sortUp : Grid -> Grid
+sortUp = sortBy (\sq -> -1*sq.y)
+
+sortDown = sortBy (\sq -> sq.y)
+
+sortLeft = sortBy (\sq -> sq.x)
+
+sortRight = sortBy (\sq -> -1* sq.x)
+
+--If there's an empty spot above (below, etc.)
+--Shift the given square into it, otherwise put it in its original place
+--Takes in a "partial" grid of squares above (below, etc.) already placed
+shiftSquareUp :  GridSquare -> Grid -> Grid
+shiftSquareUp sq grid = 
+  if sq.y == 4 
+    then (sq :: grid)
+    else case squareAt grid (sq.x, sq.y+1) of
+      Nothing -> ({sq | y <- sq.y + 1} :: grid)
+      _ -> (sq :: grid)
+      
+shiftSquareDown :  GridSquare -> Grid -> Grid
+shiftSquareDown sq grid = 
+  if sq.y == 0 
+    then (sq :: grid)
+    else case squareAt grid (sq.x, sq.y-1) of
+      Nothing -> ({sq | y <- sq.y - 1} :: grid)
+      _ -> (sq :: grid)
+    
+shiftSquareLeft :  GridSquare -> Grid -> Grid
+shiftSquareLeft sq grid = 
+  if sq.x == 0 
+    then (sq :: grid)
+    else case squareAt grid (sq.x-1, sq.y) of
+      Nothing -> ({sq | x <- sq.x - 1} :: grid)
+      _ -> (sq :: grid)
+
+
+shiftSquareRight :  GridSquare -> Grid -> Grid
+shiftSquareRight sq grid = 
+  if sq.x == 4 
+    then (sq :: grid)
+    else case squareAt grid (sq.x+1, sq.y) of
+      Nothing -> ({sq | x <- sq.x + 1} :: grid)
+      _ -> (sq :: grid)
 
 --Functions to shift the squares for each time the player moves
 --To move down, a square moves to the position in the grid where 
