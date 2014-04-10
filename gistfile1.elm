@@ -14,7 +14,7 @@ type KeyMove = { x:Int, y:Int }
 --Represent different states the came can be in
 data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
-data Input = Move KeyMove Int Int | NoInput
+data Input = Move KeyMove [(Int, Int)] | NoInput
 
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
@@ -177,7 +177,7 @@ drawSquare square = let
 
 updateGameState : Input -> GameState -> GameState
 updateGameState input gs = case (input, gs) of
-  (Move move newx newy, Playing grid) -> 
+  (Move move lst, Playing grid) -> 
     if move.x == 1
     then Playing  <| shiftRight <| mergeRight <| shiftRight grid
     else if move.x == -1
@@ -189,7 +189,8 @@ updateGameState input gs = case (input, gs) of
     else gs
   _ -> gs
     
-
+allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
+  (3,1), (3,2), (3,3), (3,4), (4,1), (4,2), (4,3), (4,4)]
 
 startState =  Playing [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]
 
@@ -197,9 +198,14 @@ drawGame gs = case gs of
   Playing grid -> drawGrid grid
 
 keyInput = let
-    randx = Random.range 1 4 Keyboard.wasd
-    randy = Random.range 1 4 Keyboard.wasd
-  in lift3 Move Keyboard.wasd randx randy
+    randFlags = combine <| map (\_ -> Random.range 0 1 Keyboard.wasd) [1..16]
+    randBools = lift (map (\x -> if x == 1 then True else False)) randFlags
+    randomInsert (elem, front) lst = if front then (elem::lst) else (lst ++ [elem])
+    elemFlags = lift (zip allTiles) randBools
+    randomList = lift (foldr randomInsert []) elemFlags
+    
+    
+  in lift2 Move Keyboard.wasd randomList
 
 main = let
     gameState = foldp updateGameState startState keyInput
