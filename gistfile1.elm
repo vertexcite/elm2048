@@ -102,18 +102,18 @@ shiftSquareRight sq grid =
 --Except when squares get combined
 --Similar math is performed for left, right, etc.
 
-applyInOrder : (GridSquare -> Grid -> Grid) -> (Grid -> Grid) -> Grid -> Grid
-applyInOrder shiftFun sortFun grid = let
+shift : (GridSquare -> Grid -> Grid) -> (Grid -> Grid) -> Grid -> Grid
+shift shiftFun sortFun grid = let
     shiftFold = (foldr shiftFun []) . sortFun
   in (apply4 shiftFold) grid --apply 4 times, move as far as can
 
-shiftUp = applyInOrder shiftSquareUp sortUp
+shiftUp = shift shiftSquareUp sortUp
 
-shiftDown = applyInOrder shiftSquareDown sortDown
+shiftDown = shift shiftSquareDown sortDown
 
-shiftLeft = applyInOrder shiftSquareLeft sortLeft
+shiftLeft = shift shiftSquareLeft sortLeft
 
-shiftRight = applyInOrder shiftSquareRight sortRight
+shiftRight = shift shiftSquareRight sortRight
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
@@ -151,6 +151,8 @@ mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
       else grid
 
 --Apply the merges to tiles in the correct order
+applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
+
 mergeUp = applyInOrder mergeSquareUp sortUp
 
 mergeDown = applyInOrder mergeSquareDown sortDown
@@ -178,7 +180,7 @@ updateGameState input gs = case (input, gs) of
     if move.x == 1
     then Playing  <| shiftRight <| mergeRight <| shiftRight grid
     else if move.x == -1
-    then Playing  <| shiftLeft grid -- <| shiftLeft <| mergeLeft <| shiftLeft grid
+    then Playing  <| shiftLeft <| shiftLeft <| mergeLeft <| shiftLeft grid
     else if move.y == -1
     then Playing  <| shiftDown <| mergeDown <| shiftDown grid
     else if move.y == 1
