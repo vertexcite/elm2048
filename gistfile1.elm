@@ -13,7 +13,7 @@ type KeyMove = { x:Int, y:Int }
 --Represent different states the came can be in
 data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
-data Input = Move KeyMove
+data Input = Move KeyMove | NoInput
 
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
@@ -102,18 +102,18 @@ shiftSquareRight sq grid =
 --Except when squares get combined
 --Similar math is performed for left, right, etc.
 
-shift : (GridSquare -> Grid -> Grid) -> (Grid -> Grid) -> Grid -> Grid
-shift shiftFun sortFun grid = let
+applyInOrder : (GridSquare -> Grid -> Grid) -> (Grid -> Grid) -> Grid -> Grid
+applyInOrder shiftFun sortFun grid = let
     shiftFold = (foldr shiftFun []) . sortFun
   in (apply4 shiftFold) grid --apply 4 times, move as far as can
 
-shiftUp = shift shiftSquareUp sortUp
+shiftUp = applyInOrder shiftSquareUp sortUp
 
-shiftDown = shift shiftSquareDown sortDown
+shiftDown = applyInOrder shiftSquareDown sortDown
 
-shiftLeft = shift shiftSquareLeft sortLeft
+shiftLeft = applyInOrder shiftSquareLeft sortLeft
 
-shiftRight = shift shiftSquareRight sortRight
+shiftRight = applyInOrder shiftSquareRight sortRight
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
@@ -150,6 +150,18 @@ mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
       then doubleSquare (sq.x+1, sq.y) <| deleteSquare (sq.x, sq.y) <| grid
       else grid
 
+--Apply the merges to tiles in the correct order
+mergeUp = applyInOrder mergeSquareUp sortUp
+
+mergeDown = applyInOrder mergeSquareDown sortDown
+
+
+mergeLeft = applyInOrder mergeSquareLeft sortLeft
+
+
+mergeRight = applyInOrder mergeSquareRight sortRight
+
+
 
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
@@ -161,12 +173,30 @@ drawSquare square = let
   
 
 updateGameState : Input -> GameState -> GameState
-updateGameState update gs = gs
+updateGameState input gs = case (input, gs) of
+  (Move move, Playing grid) -> 
+    if move.x == 1
+    then Playing  <| shiftRight <| mergeRight <| shiftRight grid
+    else if move.x == -1
+    then Playing  <| shiftLeft <| mergeLeft <| shiftLeft grid
+    else if move.y == -1
+    then Playing  <| shiftDown <| mergeDown <| shiftDown grid
+    else if move.y == 1
+    then Playing  <| shiftUp <| mergeUp <| shiftUp grid
+    else gs
+  _ -> gs
+    
 
 
-mainGrid = constant <| [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]  
+startState =  Playing [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]
+
+drawGame gs = case gs of
+  Playing grid -> drawGrid grid
+
+keyInput = lift Move Keyboard.wasd
 
 main = let
-    gameForm = lift ( (Collage.scale 10) . drawGrid) mainGrid
+    gameState = foldp updateGameState startState keyInput
+    gameForm = lift ( (Collage.scale 10) . drawGame) gameState
     formList = lift (\x -> [x]) gameForm
    in lift (collage 100 100 ) formList
