@@ -165,6 +165,14 @@ mergeLeft = applyInOrder mergeSquareLeft sortLeft
 mergeRight = applyInOrder mergeSquareRight sortRight
 
 
+--In a list of tiles, find the first free tile, if any
+firstFree : Grid -> [(Int, Int)] -> Maybe (Int, Int)
+firstFree grid lst = case lst of
+  [] -> Nothing
+  (h::t) -> case squareAt grid h of
+    Just sq -> Just h
+    _ -> firstFree grid t
+
 
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
@@ -177,16 +185,20 @@ drawSquare square = let
 
 updateGameState : Input -> GameState -> GameState
 updateGameState input gs = case (input, gs) of
-  (Move move lst, Playing grid) -> 
-    if move.x == 1
-    then Playing  <| shiftRight <| mergeRight <| shiftRight grid
-    else if move.x == -1
-    then Playing  <| shiftLeft <| shiftLeft <| mergeLeft <| shiftLeft grid
-    else if move.y == -1
-    then Playing  <| shiftDown <| mergeDown <| shiftDown grid
-    else if move.y == 1
-    then Playing  <| shiftUp <| mergeUp <| shiftUp grid
-    else gs
+  (Move move lst, Playing grid) -> let
+      updatedGrid = 
+        if move.x == 1
+        then shiftRight <| mergeRight <| shiftRight grid
+        else if move.x == -1
+        then  shiftLeft <| shiftLeft <| mergeLeft <| shiftLeft grid
+        else if move.y == -1
+        then  shiftDown <| mergeDown <| shiftDown grid
+        else if move.y == 1
+        then  shiftUp <| mergeUp <| shiftUp grid
+        else grid
+    in case firstFree updatedGrid lst of
+      Just (x,y) -> Playing ({contents=2, x=x,y=y}:: grid)
+      Nothing -> gs --TODO end game
   _ -> gs
     
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
