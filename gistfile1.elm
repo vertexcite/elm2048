@@ -16,7 +16,7 @@ drawGrid grid = let
 drawSquare : GridSquare -> Form
 drawSquare square = let
     rawSquare = Collage.filled red <| Collage.square 1
-    numElem = Collage.toForm <| plainText square.contents
+    numElem = Collage.scale (1.0/15.0)<| Collage.toForm <| plainText <| show square.contents
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
   
@@ -24,6 +24,6 @@ drawSquare square = let
 mainGrid = constant <| [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]  
 
 main = let
-    gameForm = lift (() . (Collage.scale 10) . drawGrid) mainGrid
+    gameForm = lift ( (Collage.scale 10) . drawGrid) mainGrid
     formList = lift (\x -> [x]) gameForm
    in lift (collage 100 100 ) formList
