@@ -24,7 +24,7 @@ squareAt : Grid -> (Int, Int) -> Maybe GridSquare
 squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
-  (sq :: _) -> Just sq --TODO get rid of this case
+  --(sq :: _) -> Just sq --TODO get rid of this case
   
 --Delete a square from a given position, if it exists
 deleteSquare : (Int, Int) -> Grid -> Grid
@@ -197,9 +197,10 @@ updateGameState input gs = case (input, gs) of
         else if move.y == 1
         then  shiftUp <| mergeUp <| shiftUp grid
         else grid
-    in case firstFree updatedGrid lst of
-      Just (x,y) -> Playing ({contents=2, x=x,y=y}:: updatedGrid)
-      Nothing -> GameLost updatedGrid --TODO end game
+    in case (firstFree updatedGrid [(1,1)], move.x == 0 && move.y == 0) of
+      (_, True) -> gs
+      (Just (x,y), False) -> Playing ({contents=2, x=x,y=y}:: updatedGrid)
+      (Nothing, False) -> GameLost updatedGrid --TODO end game
   _ -> gs
     
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
