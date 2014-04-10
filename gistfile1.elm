@@ -24,6 +24,7 @@ squareAt : Grid -> (Int, Int) -> Maybe GridSquare
 squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
+  (sq :: _) -> Just sq --TODO get rid of this case
   
 --Delete a square from a given position, if it exists
 deleteSquare : (Int, Int) -> Grid -> Grid
@@ -198,7 +199,7 @@ updateGameState input gs = case (input, gs) of
         else grid
     in case firstFree updatedGrid lst of
       Just (x,y) -> Playing ({contents=2, x=x,y=y}:: grid)
-      Nothing -> gs --TODO end game
+      Nothing -> GameLost [] --TODO end game
   _ -> gs
     
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
@@ -208,6 +209,7 @@ startState =  Playing [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]
 
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
+  GameLost _ -> Collage.filled blue <| Collage.square 1000
 
 keyInput = let
     randFlags = combine <| map (\_ -> Random.range 0 1 Keyboard.wasd) [1..16]
