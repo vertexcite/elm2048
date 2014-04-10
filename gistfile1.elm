@@ -28,6 +28,19 @@ inRow row sq = sq.y == row
 inCol : Int -> GridSquare -> Bool
 inCol col sq = sq.x == col
 
+--Functions to shift the squares for each time the player moves
+shiftUp : Grid -> Grid
+shiftUp = id
+
+shiftDown : Grid -> Grid
+shiftDown = id
+
+shiftLeft : Grid -> Grid
+shiftLeft = id
+
+shiftRight : Grid -> Grid
+shiftRight = id
+
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
 drawSquare square = let
