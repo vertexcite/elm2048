@@ -120,35 +120,35 @@ shiftRight = shift shiftSquareRight sortRight
 
 mergeSquareUp : GridSquare -> Grid -> Grid
 mergeSquareUp sq grid = case squareAt grid (sq.x, sq.y+1) of
-  Nothing -> grid
+  Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (sq.x, sq.y+1) <| deleteSquare (sq.x, sq.y) <| grid
-      else grid
+      then doubleSquare (sq.x, sq.y+1) grid
+      else (sq::grid)
 
 mergeSquareDown : GridSquare -> Grid -> Grid
 mergeSquareDown sq grid = case squareAt grid (sq.x, sq.y-1) of
-  Nothing -> grid
+  Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (sq.x, sq.y-1) <| deleteSquare (sq.x, sq.y) <| grid
-      else grid
+      then doubleSquare (sq.x, sq.y-1) grid
+      else (sq::grid)
       
 mergeSquareLeft : GridSquare -> Grid -> Grid
 mergeSquareLeft sq grid = case squareAt grid (sq.x-1, sq.y) of
-  Nothing -> grid
+  Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (sq.x-1, sq.y) <| deleteSquare (sq.x, sq.y) <| grid
-      else grid
+      then doubleSquare (sq.x-1, sq.y) grid
+      else (sq::grid)
       
 mergeSquareRight : GridSquare -> Grid -> Grid
 mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
-  Nothing -> grid
+  Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (sq.x+1, sq.y) <| deleteSquare (sq.x, sq.y) <| grid
-      else grid
+      then doubleSquare (sq.x+1, sq.y) grid
+      else (sq::grid)
 
 --Apply the merges to tiles in the correct order
 applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
@@ -184,7 +184,7 @@ updateGameState input gs = case (input, gs) of
     else if move.y == -1
     then Playing  <| shiftDown <| mergeDown <| shiftDown grid
     else if move.y == 1
-    then Playing <| shiftUp grid -- <| shiftUp <| mergeUp <| shiftUp grid
+    then Playing  <| shiftUp <| mergeUp <| shiftUp grid
     else gs
   _ -> gs
     
@@ -201,4 +201,4 @@ main = let
     gameState = foldp updateGameState startState keyInput
     gameForm = lift ( (Collage.scale 10) . drawGame) gameState
     formList = lift (\x -> [x]) gameForm
-   in lift (plainText . show) gameState --lift (collage 100 100 ) formList
+   in lift (collage 100 100 ) formList
