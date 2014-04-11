@@ -19,6 +19,21 @@ data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
 data Input = Move KeyMove [(Int, Int)] | NoInput
 
+--Get the color for a particular number
+colorFor n = case n of
+  2 -> rgb 238 238 218
+  4 -> rgb 237 224 200
+  8 -> rgb 242 177 121
+  16 -> rgb 245 150 99
+  32 -> rgb 246 130 96
+  64 -> rgb 246 94 59
+  128 -> rgb 237 207 114
+  256 -> rgb 237 204 97
+  512 -> rgb 237 201 82
+  1024 -> rgb 237 197 63
+  2048 -> rgb 237 194 46
+  _ -> green
+
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
 
@@ -190,7 +205,7 @@ firstFree grid lst = case lst of
 --Draw an individual square, and translate it into the right position
 drawSquare : GridSquare -> Form
 drawSquare square = let
-    rawSquare = Collage.filled red <| Collage.square 1
+    rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
     numElem = Collage.scale (1.0/15.0)<| Collage.toForm <| plainText <| show square.contents
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
@@ -240,7 +255,7 @@ main = let
     
     scaleFor x y = (toFloat (min x y))/4.0
     
-    makeTform (x,y) = TF.multiply (TF.translation (toFloat 0/(2.0)) (toFloat 0/(0-2.0) )) (TF.scale <| scaleFor x y)  
+    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-2.0)) (toFloat y/(-2.0) )) (TF.scale <| scaleFor x y)  
     tform = lift makeTform Window.dimensions
     gameForm = lift2 Collage.groupTransform tform rawFormList
     formList = lift (\x -> [x]) gameForm
