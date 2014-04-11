@@ -34,6 +34,12 @@ colorFor n = case n of
   2048 -> rgb 237 194 46
   _ -> green
 
+scaleForNumber n = if
+  | n > 1000 -> 1/60.0
+  | n > 100 -> 1/30.0
+  | n > 10 -> 1/20.0
+  | otherwise -> 1/15.0
+
 --Apply a function 4 times, useful for shifting
 apply4 f = f . f . f . f
 
@@ -206,7 +212,7 @@ firstFree grid lst = case lst of
 drawSquare : GridSquare -> Form
 drawSquare square = let
     rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
-    numElem = Collage.scale (1.0/15.0)<| Collage.toForm <| plainText <| show square.contents
+    numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| plainText <| show square.contents
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
   
@@ -246,8 +252,9 @@ keyInput = let
     elemFlags = lift (zip allTiles) randBools
     randomList = lift (foldr randomInsert []) elemFlags
     
+    inputSignal = merge Keyboard.wasd Keyboard.arrows
     
-  in lift2 Move Keyboard.wasd randomList
+  in lift2 Move inputSignal randomList
 
 main = let
     gameState = foldp updateGameState startState keyInput
