@@ -21,10 +21,18 @@ apply4 f = f . f . f . f
 
 --Get the square at a given position
 squareAt : Grid -> (Int, Int) -> Maybe GridSquare
+{-
 squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
   --(sq :: _) -> Just sq --TODO get rid of this case
+  -}
+  
+squareAt grid (x,y) = case grid of
+  [] -> Nothing
+  (h::t) -> if h.x == x && h.y == y
+    then Just h
+    else squareAt t (x,y)
   
 --Delete a square from a given position, if it exists
 deleteSquare : (Int, Int) -> Grid -> Grid
@@ -55,13 +63,13 @@ inCol col sq = sq.x == col
 --Functions to sort elements from top to bottom, bottom to top, etc
 --Useful for shifting elements in the right order
 sortUp : Grid -> Grid
-sortUp = sortBy (\sq -> -1*sq.y)
+sortUp = sortBy (\sq -> sq.y)
 
-sortDown = sortBy (\sq -> sq.y)
+sortDown = sortBy (\sq -> -1*sq.y)
 
-sortLeft = sortBy (\sq -> sq.x)
+sortLeft = sortBy (\sq -> -1*sq.x)
 
-sortRight = sortBy (\sq -> -1* sq.x)
+sortRight = sortBy (\sq ->  sq.x)
 
 --If there's an empty spot above (below, etc.)
 --Shift the given square into it, otherwise put it in its original place
@@ -155,15 +163,15 @@ mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
 --Apply the merges to tiles in the correct order
 applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
 
-mergeUp = applyInOrder mergeSquareUp sortUp
+mergeUp = applyInOrder mergeSquareUp sortDown
 
-mergeDown = applyInOrder mergeSquareDown sortDown
-
-
-mergeLeft = applyInOrder mergeSquareLeft sortLeft
+mergeDown = applyInOrder mergeSquareDown sortUp
 
 
-mergeRight = applyInOrder mergeSquareRight sortRight
+mergeLeft = applyInOrder mergeSquareLeft sortRight
+
+
+mergeRight = applyInOrder mergeSquareRight sortLeft
 
 
 --In a list of tiles, find the first free tile, if any
@@ -197,16 +205,16 @@ updateGameState input gs = case (input, gs) of
         else if move.y == 1
         then  shiftUp <| mergeUp <| shiftUp grid
         else grid
-    in case (firstFree updatedGrid [(1,1)], move.x == 0 && move.y == 0) of
+    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
       (_, True) -> gs
-      (Just (x,y), False) -> Playing ({contents=2, x=x,y=y}:: updatedGrid)
+      (Just (x,y), False) -> Playing ({contents=2, x=x,y=y}::  updatedGrid)
       (Nothing, False) -> GameLost updatedGrid --TODO end game
   _ -> gs
     
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
   (3,1), (3,2), (3,3), (3,4), (4,1), (4,2), (4,3), (4,4)]
 
-startState =  Playing [{contents=2, x=3, y=3},{contents=2, x=1, y=2}]
+startState =  Playing [{contents=2, x=1, y=4},{contents=2, x=1, y=3}]
 
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
@@ -224,6 +232,8 @@ keyInput = let
 
 main = let
     gameState = foldp updateGameState startState keyInput
+    rawFormList = lift (\x -> [drawGame x]) gameState
+    tform = lift (())
     gameForm = lift ( (Collage.scale 10) . drawGame) gameState
     formList = lift (\x -> [x]) gameForm
-   in lift (asText . show) gameState --lift (collage 100 100 ) formList
+   in lift {-(asText . show) gameState-} (collage 100 100 ) formList
