@@ -97,6 +97,11 @@ squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
 
+--Returns true if the grid has a 2048
+has2048 : Grid -> Bool
+has2048 grid = case filter (\sq -> sq.contents >= 2048) grid of
+    [] -> False
+    _ -> True
   
 --Delete a square from a given position, if it exists
 deleteSquare : (Int, Int) -> Grid -> Grid
@@ -275,7 +280,9 @@ updateGameState input gs = case (input, gs) of
     in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
       (_, True) -> gs
       (Just (x,y), False) -> Playing ({contents=2, x=x,y=y}::  updatedGrid)
-      (Nothing, False) -> GameLost updatedGrid --TODO end game
+      (Nothing, False) -> if (has2048 updatedGrid)
+        then GameWon updatedGrid
+        else GameLost updatedGrid
   _ -> gs
    
 --The different coordinates a tile can have
@@ -290,7 +297,9 @@ startState =  Playing [{contents=2, x=1, y=4},{contents=2, x=1, y=3}]
 --Given a game state, convert it to a form to be drawn
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
-  GameLost _ -> Collage.filled blue <| Collage.square 1000
+  GameLost grid -> let
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| plainText "Game Over"
+    in Collage.group [drawGrid grid, messageForm ]
 
 --Extracts the nth element of a list, starting at 1
 --Fails on empty lists
