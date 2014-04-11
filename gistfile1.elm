@@ -292,15 +292,28 @@ drawGame gs = case gs of
   Playing grid -> drawGrid grid
   GameLost _ -> Collage.filled blue <| Collage.square 1000
 
+--Extracts the nth element of a list, starting at 1
+--Fails on empty lists
+nth1 : Int -> [a] -> (a,[a])
+nth1 n (h::t) = case n of
+  1 -> (h,t)
+  _ -> let 
+      (nth, tailLeftOver) = nth1 (n-1) t
+    in (nth, h::tailLeftOver)
+
+--Shuffle the elements of the given list, assuming we have n random numbers
+--Not exceeding n, n-1, etc.
+shuffle lst randNums = let
+    shuffleStep indexToAdd (elemsToAdd, listSoFar) = let
+        (nextElem, leftOver) = nth1 indexToAdd elemsToAdd
+      in (leftOver, nextElem::listSoFar)
+  in snd <| foldr shuffleStep (lst, []) randNums
+
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
 keyInput = let
-    randFlags = combine <| map (\_ -> Random.range 0 1 Keyboard.wasd) [1..16]
-    randBools = lift (map (\x -> if x == 1 then True else False)) randFlags
-    randomInsert (elem, front) lst = if front then (elem::lst) else (lst ++ [elem])
-    elemFlags = lift (zip allTiles) randBools
-    randomList = lift (foldr randomInsert []) elemFlags
-    
+    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..16]
+    randomList = lift (shuffle allTiles) randNums    
     inputSignal = merge Keyboard.wasd Keyboard.arrows
     
   in lift2 Move inputSignal randomList
