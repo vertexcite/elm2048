@@ -300,6 +300,9 @@ drawGame gs = case gs of
   GameLost grid -> let
       messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| plainText "Game Over"
     in Collage.group [drawGrid grid, messageForm ]
+  GameWon grid -> let
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| plainText "Congratulations"
+    in Collage.group [drawGrid grid, messageForm ]
 
 --Extracts the nth element of a list, starting at 1
 --Fails on empty lists
