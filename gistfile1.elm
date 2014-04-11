@@ -1,6 +1,9 @@
 import Graphics.Collage as Collage
 import Keyboard
 import Random
+import Transform2D as TF
+
+import Window
 
 --Represent each square of the game
 type GridSquare = {contents: Int, x:Int, y:Int}
@@ -51,7 +54,8 @@ doubleSquare coords grid = let
 drawGrid : Grid -> Form
 drawGrid grid = let
     gridForms = map drawSquare grid
-  in Collage.group gridForms
+    background =  Collage.move (2.5, 2.5) <| Collage.filled black <| Collage.square 4 
+  in Collage.group <| [background]++gridForms 
 
 --Filter squares in a given row or column
 inRow : Int -> GridSquare -> Bool
@@ -84,7 +88,7 @@ shiftSquareUp sq grid =
       
 shiftSquareDown :  GridSquare -> Grid -> Grid
 shiftSquareDown sq grid = 
-  if sq.y == 0 
+  if sq.y == 1 
     then (sq :: grid)
     else case squareAt grid (sq.x, sq.y-1) of
       Nothing -> ({sq | y <- sq.y - 1} :: grid)
@@ -92,7 +96,7 @@ shiftSquareDown sq grid =
     
 shiftSquareLeft :  GridSquare -> Grid -> Grid
 shiftSquareLeft sq grid = 
-  if sq.x == 0 
+  if sq.x == 1
     then (sq :: grid)
     else case squareAt grid (sq.x-1, sq.y) of
       Nothing -> ({sq | x <- sq.x - 1} :: grid)
@@ -233,7 +237,12 @@ keyInput = let
 main = let
     gameState = foldp updateGameState startState keyInput
     rawFormList = lift (\x -> [drawGame x]) gameState
-    tform = lift (())
-    gameForm = lift ( (Collage.scale 10) . drawGame) gameState
+    
+    scaleFor x y = (toFloat (min x y))/4.0
+    
+    makeTform (x,y) = TF.multiply (TF.translation (toFloat 0/(2.0)) (toFloat 0/(0-2.0) )) (TF.scale <| scaleFor x y)  
+    tform = lift makeTform Window.dimensions
+    gameForm = lift2 Collage.groupTransform tform rawFormList
     formList = lift (\x -> [x]) gameForm
-   in lift {-(asText . show) gameState-} (collage 100 100 ) formList
+    collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
+   in lift2 {-(asText . show) gameState-} (\f l -> f l) collageFunc  formList
