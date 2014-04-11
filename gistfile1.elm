@@ -24,7 +24,7 @@ colorFor n = case n of
   2 -> rgb 238 238 218
   4 -> rgb 237 224 200
   8 -> rgb 242 177 121
-  16 -> rgb 245 150 99
+  16 -> rgb 245 149 99
   32 -> rgb 246 130 96
   64 -> rgb 246 94 59
   128 -> rgb 237 207 114
@@ -255,7 +255,7 @@ main = let
     
     scaleFor x y = (toFloat (min x y))/4.0
     
-    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-2.0)) (toFloat y/(-2.0) )) (TF.scale <| scaleFor x y)  
+    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-2.0)) (toFloat (y+100)/(-2.0) )) (TF.scale <| scaleFor x y)  
     tform = lift makeTform Window.dimensions
     gameForm = lift2 Collage.groupTransform tform rawFormList
     formList = lift (\x -> [x]) gameForm
