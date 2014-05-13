@@ -254,11 +254,10 @@ updateGameState input gs = case (input, gs) of
         then  shiftUp <| mergeUp <| shiftUp grid
         else grid
     --We only move on key down, not when the move returns to 0,0
-    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0, sameGame updatedGrid grid) of
-      (_, _, True) -> gs
-      (_, True, _) -> gs
-      (Just (x,y), False, _) -> Playing ({contents=2, x=x,y=y}::  updatedGrid)
-      (Nothing, False, _) -> if (has2048 updatedGrid)
+    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
+      (_, True) -> gs
+      (Just (x,y), _) -> if sameGame updatedGrid grid then gs else Playing ({contents=2, x=x,y=y}::  updatedGrid)
+      (Nothing, _) -> if (has2048 updatedGrid)
         then GameWon updatedGrid
         else if canMove gs then gs else GameLost updatedGrid
   _ -> gs
