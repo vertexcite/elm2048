@@ -254,14 +254,39 @@ updateGameState input gs = case (input, gs) of
         then  shiftUp <| mergeUp <| shiftUp grid
         else grid
     --We only move on key down, not when the move returns to 0,0
-    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
-      (_, True) -> gs
-      (Just (x,y), False) -> Playing ({contents=2, x=x,y=y}::  updatedGrid)
-      (Nothing, False) -> if (has2048 updatedGrid)
+    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0, sameGame updatedGrid grid) of
+      (_, _, True) -> gs
+      (_, True, _) -> gs
+      (Just (x,y), False, _) -> Playing ({contents=2, x=x,y=y}::  updatedGrid)
+      (Nothing, False, _) -> if (has2048 updatedGrid)
         then GameWon updatedGrid
-        else GameLost updatedGrid
+        else if canMove gs then gs else GameLost updatedGrid
   _ -> gs
-   
+
+sameGame : Grid -> Grid -> Bool
+sameGame g1 g2 =
+  if length g1 /= length g2 then False else
+    let 
+      hasMatchingSquareInGrid1 s2 = case squareAt g1 (squareCoord s2) of
+        Nothing -> False
+        Just s1 -> s1.contents == s2.contents
+    in all hasMatchingSquareInGrid1 g2
+
+canMove : GameState -> Bool
+canMove gs =  let
+    dummyList = allTiles
+    upMove    = Move {x= 0,y= 1} dummyList
+    downMove  = Move {x= 0,y=-1} dummyList
+    leftMove  = Move {x=-1,y= 0} dummyList
+    rightMove = Move {x= 1,y= 0} dummyList
+    possibleGameStates : [GameState]
+    possibleGameStates = map (\x -> updateGameState x gs) [upMove, downMove, leftMove, rightMove]
+    live : GameState -> Bool
+    live x = case x of 
+      GameLost _ -> False
+      _          -> True
+  in any live possibleGameStates
+
 --The different coordinates a tile can have
 --We randomly permute this to add new tiles to the board
 allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
