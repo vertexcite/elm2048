@@ -127,79 +127,51 @@ drawGrid grid = let
     background =  Collage.move (2.5, 2.5) <| Collage.filled black <| Collage.square 4 
   in Collage.group <| [background]++gridForms 
 
+type Direction = {move:GridSquare -> GridSquare, sorting:GridSquare -> Int, atEdge:GridSquare -> Bool}
 
---Functions to sort elements from top to bottom, bottom to top, etc
---Useful for shifting elements in the right order
-sortUp : Grid -> Grid
-sortUp = sortBy (\sq -> sq.y)
+up : Direction
+up = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == 4 }
 
-sortDown = sortBy (\sq -> -sq.y)
+down : Direction
+down = { move = \sq -> {sq | y <- sq.y - 1}, sorting = \sq -> -sq.y, atEdge = \sq -> sq.y == 1 }
 
-sortLeft = sortBy (\sq -> -sq.x)
+left : Direction
+left = { move = \sq -> {sq | x <- sq.x - 1}, sorting = \sq -> -sq.x, atEdge = \sq -> sq.x == 1 }
 
-sortRight = sortBy (\sq -> sq.x)
-
-up : GridSquare -> GridSquare
-up sq = {sq | y <- sq.y + 1}
-
-down : GridSquare -> GridSquare
-down sq = {sq | y <- sq.y - 1}
-
-left : GridSquare -> GridSquare
-left sq = {sq | x <- sq.x - 1}
-
-right : GridSquare -> GridSquare
-right sq = {sq | x <- sq.x + 1}
+right : Direction
+right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq -> sq.x, atEdge = \sq -> sq.x == 4 }
 
 --If there's an empty spot in target space (i.e. above, below, etc.)
 --Shift the given square into it, otherwise put it in its original place
 --Takes in a "partial" grid of squares (above or below, etc.) already placed
-shiftSquare :  (GridSquare -> Bool) -> (GridSquare -> GridSquare) -> GridSquare -> Grid -> Grid
-shiftSquare test dirSq sq grid = 
-  if test sq 
+shiftSquare :  Direction -> GridSquare -> Grid -> Grid
+shiftSquare dir sq grid = 
+  if dir.atEdge sq 
     then (sq :: grid)
-    else case squareAt grid (squareCoord (dirSq sq)) of
-      Nothing -> (dirSq sq :: grid)
+    else case squareAt grid (squareCoord (dir.move sq)) of
+      Nothing -> (dir.move sq :: grid)
       _ -> (sq :: grid)
-
-shiftSquareUp    = shiftSquare (\sq -> sq.y == 4) up
-shiftSquareDown  = shiftSquare (\sq -> sq.y == 1) down
-shiftSquareLeft  = shiftSquare (\sq -> sq.x == 1) left
-shiftSquareRight = shiftSquare (\sq -> sq.x == 4) right
 
 --Functions to shift the squares for each time the player moves
 --To move down, a square moves to the position in the grid where 
 --Except when squares get combined
 --Similar math is performed for left, right, etc.
-shift : (GridSquare -> Grid -> Grid) -> (Grid -> Grid) -> Grid -> Grid
-shift shiftFun sortFun grid = let
-    shiftFold = (foldr shiftFun []) . sortFun
+shift : Direction -> Grid -> Grid
+shift dir grid = let
+    shiftFold = (foldr (shiftSquare dir) []) . (sortBy dir.sorting)
   in (apply4 shiftFold) grid --apply 4 times, move as far as can
-
-shiftUp = shift shiftSquareUp sortUp
-
-shiftDown = shift shiftSquareDown sortDown
-
-shiftLeft = shift shiftSquareLeft sortLeft
-
-shiftRight = shift shiftSquareRight sortRight
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
 --Note that we sort in the opposite order of shifting
 --Since if we're moving up, the bottom square gets absorbed
-mergeSquare : (GridSquare -> GridSquare) -> GridSquare -> Grid -> Grid
-mergeSquare dirSq sq grid = case squareAt grid (squareCoord (dirSq sq)) of
+mergeSquare : Direction -> GridSquare -> Grid -> Grid
+mergeSquare dir sq grid = case squareAt grid (squareCoord (dir.move sq)) of
   Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (squareCoord (dirSq sq)) grid
+      then doubleSquare (squareCoord (dir.move sq)) grid
       else (sq::grid)
-
-mergeSquareUp    = mergeSquare up
-mergeSquareDown  = mergeSquare down
-mergeSquareLeft  = mergeSquare left
-mergeSquareRight = mergeSquare right
 
 --Apply the merges to tiles in the correct order
 applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
@@ -207,16 +179,7 @@ applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun
 --Given a grid and a square, see if that square can be merged
 --by moving up (down, left, right) and if so, do the merge
 --And double the tile that absorbs it
-mergeUp = applyInOrder mergeSquareUp sortDown
-
-mergeDown = applyInOrder mergeSquareDown sortUp
-
-
-mergeLeft = applyInOrder mergeSquareLeft sortRight
-
-
-mergeRight = applyInOrder mergeSquareRight sortLeft
-
+mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy dir.sorting)
 
 --Given a list of tiles, find the first free tile, if any
 --Used for placing random elements
@@ -237,33 +200,32 @@ drawSquare square = let
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
   
+makeMove : Direction -> Grid -> Grid
+makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
+
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
 updateGameState input gs = case (input, gs) of
   --The user moved, so shift, do any merges, then shift again to clean up
   (Move move lst, Playing grid) -> let
-      updatedGrid = 
-        if move.x == 1
-        then shiftRight <| mergeRight <| shiftRight grid
-        else if move.x == -1
-        then  shiftLeft <| shiftLeft <| mergeLeft <| shiftLeft grid
-        else if move.y == -1
-        then  shiftDown <| mergeDown <| shiftDown grid
-        else if move.y == 1
-        then  shiftUp <| mergeUp <| shiftUp grid
-        else grid
+      updatedGrid = let dir =  
+          if      move.x ==  1 then right
+          else if move.x == -1 then left
+          else if move.y == -1 then down
+          else up
+        in makeMove dir grid
     --We only move on key down, not when the move returns to 0,0
     in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
       (_, True) -> gs
-      (Just (x,y), _) -> if sameGame updatedGrid grid then gs else Playing ({contents=2, x=x,y=y}::  updatedGrid)
+      (Just (x,y), _) -> if sameGrid updatedGrid grid then gs else Playing ({contents=2, x=x,y=y}::  updatedGrid)
       (Nothing, _) -> if (has2048 updatedGrid)
         then GameWon updatedGrid
-        else if canMove gs then gs else GameLost updatedGrid
+        else if canMove grid then gs else GameLost updatedGrid
   _ -> gs
 
-sameGame : Grid -> Grid -> Bool
-sameGame g1 g2 =
+sameGrid : Grid -> Grid -> Bool
+sameGrid g1 g2 =
   if length g1 /= length g2 then False else
     let 
       hasMatchingSquareInGrid1 s2 = case squareAt g1 (squareCoord s2) of
@@ -271,20 +233,13 @@ sameGame g1 g2 =
         Just s1 -> s1.contents == s2.contents
     in all hasMatchingSquareInGrid1 g2
 
-canMove : GameState -> Bool
-canMove gs =  let
-    dummyList = allTiles
-    upMove    = Move {x= 0,y= 1} dummyList
-    downMove  = Move {x= 0,y=-1} dummyList
-    leftMove  = Move {x=-1,y= 0} dummyList
-    rightMove = Move {x= 1,y= 0} dummyList
-    possibleGameStates : [GameState]
-    possibleGameStates = map (\x -> updateGameState x gs) [upMove, downMove, leftMove, rightMove]
-    live : GameState -> Bool
-    live x = case x of 
-      GameLost _ -> False
-      _          -> True
-  in any live possibleGameStates
+canMove : Grid -> Bool
+canMove grid =  let
+    possibleGrids : [Grid]
+    possibleGrids = map (\x -> makeMove x grid) [up, down, left, right]
+    live : Grid -> Bool
+    live x = not (sameGrid grid x)
+  in any live possibleGrids
 
 --The different coordinates a tile can have
 --We randomly permute this to add new tiles to the board
