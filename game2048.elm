@@ -206,23 +206,23 @@ makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
-updateGameState input gs = case (input, gs) of
-  --The user moved, so shift, do any merges, then shift again to clean up
-  (Move move lst, Playing grid) -> let
-      updatedGrid = let dir =  
-          if      move.x ==  1 then right
-          else if move.x == -1 then left
-          else if move.y == -1 then down
-          else up
-        in makeMove dir grid
-    --We only move on key down, not when the move returns to 0,0
-    in case (firstFree updatedGrid lst, move.x == 0 && move.y == 0) of
-      (_, True) -> gs
-      (Just (x,y), _) -> if sameGrid updatedGrid grid then gs else Playing ({contents=2, x=x,y=y}::  updatedGrid)
-      (Nothing, _) -> if (has2048 updatedGrid)
-        then GameWon updatedGrid
-        else if canMove grid then gs else GameLost updatedGrid
-  _ -> gs
+updateGameState (Move move lst) (Playing grid as gs) = case move.x == 0 && move.y == 0 of
+  True -> gs
+  _    -> 
+    let
+      dir =  
+        if      move.x ==  1 then right
+        else if move.x == -1 then left
+        else if move.y == -1 then down
+        else up
+      updatedGrid = makeMove dir grid
+    in
+      if has2048 updatedGrid then GameWon updatedGrid
+      else case (firstFree updatedGrid lst) of
+        Just (x,y) -> if sameGrid updatedGrid grid then gs
+                      else Playing ({contents=2, x=x,y=y}::  updatedGrid)
+        Nothing    -> if canMove grid then gs else GameLost updatedGrid
+
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -254,10 +254,10 @@ startState =  Playing [{contents=2, x=1, y=4},{contents=2, x=1, y=3}]
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
   GameLost grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| plainText "Game Over"
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
     in Collage.group [drawGrid grid, messageForm ]
   GameWon grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| plainText "Congratulations"
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
     in Collage.group [drawGrid grid, messageForm ]
 
 --Extracts the nth element of a list, starting at 1
