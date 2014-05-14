@@ -60,7 +60,7 @@ data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-data Input = Move KeyMove [(Int, Int)]
+data Input = Move KeyMove [((Int, Int), Int)]
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -183,11 +183,11 @@ mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy <| (\x -> -x) . dir.sorti
 
 --Given a list of tiles, find the first free tile, if any
 --Used for placing random elements
-firstFree : Grid -> [(Int, Int)] -> Maybe (Int, Int)
+firstFree : Grid -> [((Int, Int), Int)] -> Maybe (Int, Int, Int)
 firstFree grid lst = case lst of
   [] -> Nothing
-  (h::t) -> case squareAt grid h of
-    Nothing -> Just h
+  (((x,y),v)::t) -> case squareAt grid (x,y) of
+    Nothing -> Just (x,y,v)
     _ -> firstFree grid t
 
 
@@ -219,9 +219,9 @@ updateGameState (Move move lst) (Playing grid as gs) = case move.x == 0 && move.
     in
       if has2048 penUpdatedGrid then GameWon penUpdatedGrid
       else case (firstFree penUpdatedGrid lst) of
-        Just (x,y) -> 
+        Just (x,y,v) -> 
           if sameGrid penUpdatedGrid grid then gs 
-          else let updatedGrid = ({contents=2, x=x,y=y}::  penUpdatedGrid)
+          else let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
           in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
         Nothing    -> if canMove grid then gs else GameLost penUpdatedGrid
 
@@ -243,10 +243,13 @@ canMove grid =  let
     live x = not (sameGrid grid x)
   in any live possibleGrids
 
---The different coordinates a tile can have
+--The different coordinates and value a new tile can have
 --We randomly permute this to add new tiles to the board
-allTiles = [(1,1), (1,2), (1,3), (1,4), (2,1), (2,2), (2,3), (2,4),
-  (3,1), (3,2), (3,3), (3,4), (4,1), (4,2), (4,3), (4,4)]
+
+allTiles = product (product [1..4] [1..4]) [2,4]
+
+product : [a] -> [b] -> [(a,b)]
+product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 
 --For now, we always start with the same two tiles
 --Will be made more sophisticated in future versions
@@ -282,10 +285,10 @@ shuffle lst randNums = let
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
 keyInput = let
-    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..16]
+    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..(length allTiles)]
     randomList = lift (shuffle allTiles) randNums    
     inputSignal = merge Keyboard.wasd Keyboard.arrows
-    
+
   in lift2 Move inputSignal randomList
 
 --Wrap everything together: take the game state
