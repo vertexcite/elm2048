@@ -215,13 +215,15 @@ updateGameState (Move move lst) (Playing grid as gs) = case move.x == 0 && move.
         else if move.x == -1 then left
         else if move.y == -1 then down
         else up
-      updatedGrid = makeMove dir grid
+      penUpdatedGrid = makeMove dir grid
     in
-      if has2048 updatedGrid then GameWon updatedGrid
-      else case (firstFree updatedGrid lst) of
-        Just (x,y) -> if sameGrid updatedGrid grid then gs
-                      else Playing ({contents=2, x=x,y=y}::  updatedGrid)
-        Nothing    -> if canMove grid then gs else GameLost updatedGrid
+      if has2048 penUpdatedGrid then GameWon penUpdatedGrid
+      else case (firstFree penUpdatedGrid lst) of
+        Just (x,y) -> 
+          if sameGrid penUpdatedGrid grid then gs 
+          else let updatedGrid = ({contents=2, x=x,y=y}::  penUpdatedGrid)
+          in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
+        Nothing    -> if canMove grid then gs else GameLost penUpdatedGrid
 
 
 sameGrid : Grid -> Grid -> Bool
