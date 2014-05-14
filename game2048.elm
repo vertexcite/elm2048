@@ -46,6 +46,9 @@ import Transform2D as TF
 
 import Window
 
+dim : Int
+dim = 4
+
 --Represent each square of the game
 type GridSquare = {contents: Int, x:Int, y:Int}
 
@@ -87,10 +90,13 @@ scaleForNumber n = if
   | n >= 10 -> 1/20.0
   | otherwise -> 1/15.0
 
---Apply a function 4 times
+--Apply a function n times
 --We use this for shifting: we shift squares as much as we can
---By shifting them 1 square 4 times
-apply4 f = f . f . f . f
+--By shifting them 1 square dim times
+apply : Int -> (a -> a) -> (a -> a)
+apply n f = 
+  if | n == 0 -> f
+     | otherwise -> f . apply (n-1) f
 
 --Get the square at a given position in the grid
 squareAt : Grid -> (Int, Int) -> Maybe GridSquare
@@ -124,7 +130,7 @@ doubleSquare coords grid = let
 type Direction = {move:GridSquare -> GridSquare, sorting:GridSquare -> Int, atEdge:GridSquare -> Bool}
 
 up : Direction
-up    = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == 4 }
+up    = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == dim }
 
 down : Direction
 down  = { move = \sq -> {sq | y <- sq.y - 1}, sorting = \sq -> -sq.y, atEdge = \sq -> sq.y == 1 }
@@ -133,7 +139,7 @@ left : Direction
 left  = { move = \sq -> {sq | x <- sq.x - 1}, sorting = \sq -> -sq.x, atEdge = \sq -> sq.x == 1 }
 
 right : Direction
-right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq ->  sq.x, atEdge = \sq -> sq.x == 4 }
+right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq ->  sq.x, atEdge = \sq -> sq.x == dim }
 
 --If there's an empty spot in target space (i.e. above, below, etc.)
 --Shift the given square into it, otherwise put it in its original place
@@ -153,7 +159,7 @@ shiftSquare dir sq grid =
 shift : Direction -> Grid -> Grid
 shift dir grid = let
     shiftFold = (foldr (shiftSquare dir) []) . (sortBy dir.sorting)
-  in (apply4 shiftFold) grid --apply 4 times, move as far as can
+  in (apply dim shiftFold) grid --apply 4 times, move as far as can
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
@@ -230,14 +236,14 @@ canMove grid =  let
 --The different coordinates and value a new tile can have
 --We randomly permute this to add new tiles to the board
 allTiles : CandidateList
-allTiles = product (product [1..4] [1..4]) [2,4]
+allTiles = product (product [1..dim] [1..dim]) [2,4]
 
 product : [a] -> [b] -> [(a,b)]
 product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 
 --For now, we always start with the same two tiles
 --Will be made more sophisticated in future versions
-startState =  Playing [{contents=2, x=1, y=4},{contents=2, x=1, y=3}]
+startState =  Playing [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}]
 
 --Extracts the nth element of a list, starting at 1
 --Fails on empty lists
@@ -257,7 +263,9 @@ shuffle lst randNums = let
       in (leftOver, nextElem::listSoFar)
   in snd <| foldr shuffleStep (lst, []) randNums
 
--- --------------- Everything above this line is pure functional, below is FRP -------------------
+-- --------------- Everything above this line is pure functional, below is FRP, rendering, or utils for those -------------------
+offset : Float
+offset = (toFloat dim)/2.0 + 0.5
 
 --Draw an individual square, and translate it into the right position
 --We assume each square is 1 "unit" wide, and positioned somewhere in [1,4]*[1,4]
@@ -272,17 +280,17 @@ drawSquare square = let
 drawGrid : Grid -> Form
 drawGrid grid = let
     gridForms = map drawSquare grid
-    background =  Collage.move (2.5, 2.5) <| Collage.filled black <| Collage.square 4 
+    background =  Collage.move (offset, offset) <| Collage.filled black <| Collage.square (toFloat dim) 
   in Collage.group <| [background]++gridForms 
 
 --Given a game state, convert it to a form to be drawn
 drawGame gs = case gs of
   Playing grid -> drawGrid grid
   GameLost grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
+      messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
     in Collage.group [drawGrid grid, messageForm ]
   GameWon grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
+      messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
     in Collage.group [drawGrid grid, messageForm ]
 
 
@@ -305,12 +313,13 @@ keyInput = let
 --Get the form to draw it, transform it into screen coordinates
 --Then convert it to an Element and draw it to the screen
 main = let
+    gameState : Signal GameState
     gameState = foldp updateGameState startState keyInput
     rawFormList = lift (\x -> [drawGame x]) gameState
-    scaleFor x y = (toFloat (min x y))/8.0
-    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-4.0)) (toFloat y/(-4.0) )) (TF.scale <| scaleFor x y)  
+    scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
+    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-(toFloat dim))) (toFloat y/(-(toFloat dim)) )) (TF.scale <| scaleFor x y)  
     tform = lift makeTform Window.dimensions
     gameForm = lift2 Collage.groupTransform tform rawFormList
     formList = lift (\x -> [x]) gameForm
     collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
-   in lift2 {-(asText . show) gameState-} (\f l -> f l) collageFunc  formList
+   in lift2 {-(asText . show) gameState-} (\f l -> f l) collageFunc formList
