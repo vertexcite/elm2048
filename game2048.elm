@@ -130,16 +130,16 @@ drawGrid grid = let
 type Direction = {move:GridSquare -> GridSquare, sorting:GridSquare -> Int, atEdge:GridSquare -> Bool}
 
 up : Direction
-up = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == 4 }
+up    = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == 4 }
 
 down : Direction
-down = { move = \sq -> {sq | y <- sq.y - 1}, sorting = \sq -> -sq.y, atEdge = \sq -> sq.y == 1 }
+down  = { move = \sq -> {sq | y <- sq.y - 1}, sorting = \sq -> -sq.y, atEdge = \sq -> sq.y == 1 }
 
 left : Direction
-left = { move = \sq -> {sq | x <- sq.x - 1}, sorting = \sq -> -sq.x, atEdge = \sq -> sq.x == 1 }
+left  = { move = \sq -> {sq | x <- sq.x - 1}, sorting = \sq -> -sq.x, atEdge = \sq -> sq.x == 1 }
 
 right : Direction
-right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq -> sq.x, atEdge = \sq -> sq.x == 4 }
+right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq ->  sq.x, atEdge = \sq -> sq.x == 4 }
 
 --If there's an empty spot in target space (i.e. above, below, etc.)
 --Shift the given square into it, otherwise put it in its original place
@@ -179,7 +179,7 @@ applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun
 --Given a grid and a square, see if that square can be merged
 --by moving up (down, left, right) and if so, do the merge
 --And double the tile that absorbs it
-mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy dir.sorting)
+mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy <| (\x -> -x) . dir.sorting )
 
 --Given a list of tiles, find the first free tile, if any
 --Used for placing random elements
