@@ -121,13 +121,6 @@ doubleSquare coords grid = let
     removedGrid = deleteSquare coords grid
   in ({sq | contents <- sq.contents*2} :: removedGrid)
 
---Convert the list of squares to a Form to be drawn
-drawGrid : Grid -> Form
-drawGrid grid = let
-    gridForms = map drawSquare grid
-    background =  Collage.move (2.5, 2.5) <| Collage.filled black <| Collage.square 4 
-  in Collage.group <| [background]++gridForms 
-
 type Direction = {move:GridSquare -> GridSquare, sorting:GridSquare -> Int, atEdge:GridSquare -> Bool}
 
 up : Direction
@@ -191,16 +184,6 @@ firstFree grid lst = case lst of
     Nothing -> Just (x,y,v)
     _ -> firstFree grid t
 
-
---Draw an individual square, and translate it into the right position
---We assume each square is 1 "unit" wide, and positioned somewhere in [1,4]*[1,4]
-drawSquare : GridSquare -> Form
-drawSquare square = let
-    rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
-    numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| plainText <| show square.contents
-    completeSquare = Collage.group [rawSquare, numElem]
-  in Collage.move (toFloat square.x, toFloat square.y) completeSquare
-  
 makeMove : Direction -> Grid -> Grid
 makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
 
@@ -256,16 +239,6 @@ product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 --Will be made more sophisticated in future versions
 startState =  Playing [{contents=2, x=1, y=4},{contents=2, x=1, y=3}]
 
---Given a game state, convert it to a form to be drawn
-drawGame gs = case gs of
-  Playing grid -> drawGrid grid
-  GameLost grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
-    in Collage.group [drawGrid grid, messageForm ]
-  GameWon grid -> let
-      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
-    in Collage.group [drawGrid grid, messageForm ]
-
 --Extracts the nth element of a list, starting at 1
 --Fails on empty lists
 nth1 : Int -> [a] -> (a,[a])
@@ -283,6 +256,36 @@ shuffle lst randNums = let
         (nextElem, leftOver) = nth1 indexToAdd elemsToAdd
       in (leftOver, nextElem::listSoFar)
   in snd <| foldr shuffleStep (lst, []) randNums
+
+-- --------------- Everything above this line is pure functional, below is FRP -------------------
+
+--Draw an individual square, and translate it into the right position
+--We assume each square is 1 "unit" wide, and positioned somewhere in [1,4]*[1,4]
+drawSquare : GridSquare -> Form
+drawSquare square = let
+    rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
+    numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| plainText <| show square.contents
+    completeSquare = Collage.group [rawSquare, numElem]
+  in Collage.move (toFloat square.x, toFloat square.y) completeSquare
+  
+--Convert the list of squares to a Form to be drawn
+drawGrid : Grid -> Form
+drawGrid grid = let
+    gridForms = map drawSquare grid
+    background =  Collage.move (2.5, 2.5) <| Collage.filled black <| Collage.square 4 
+  in Collage.group <| [background]++gridForms 
+
+--Given a game state, convert it to a form to be drawn
+drawGame gs = case gs of
+  Playing grid -> drawGrid grid
+  GameLost grid -> let
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
+    in Collage.group [drawGrid grid, messageForm ]
+  GameWon grid -> let
+      messageForm = Collage.move (2.5, 2.5) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
+    in Collage.group [drawGrid grid, messageForm ]
+
+
 
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
