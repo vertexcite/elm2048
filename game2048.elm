@@ -58,9 +58,10 @@ type KeyMove = { x:Int, y:Int }
 --Represent different states the came can be in
 data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
+type CandidateList = [((Int, Int), Int)]
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-data Input = Move KeyMove [((Int, Int), Int)]
+data Input = Move KeyMove CandidateList
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -245,7 +246,7 @@ canMove grid =  let
 
 --The different coordinates and value a new tile can have
 --We randomly permute this to add new tiles to the board
-
+allTiles : CandidateList
 allTiles = product (product [1..4] [1..4]) [2,4]
 
 product : [a] -> [b] -> [(a,b)]
@@ -276,6 +277,7 @@ nth1 n (h::t) = case n of
 
 --Shuffle the elements of the given list, assuming we have n random numbers
 --Not exceeding n, n-1, etc.
+shuffle : CandidateList -> [Int] -> CandidateList
 shuffle lst randNums = let
     shuffleStep indexToAdd (elemsToAdd, listSoFar) = let
         (nextElem, leftOver) = nth1 indexToAdd elemsToAdd
@@ -286,8 +288,12 @@ shuffle lst randNums = let
 --Bundling it with a random permutations of the tiles each time
 keyInput : Signal Input
 keyInput = let
-    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..(length allTiles)]
-    randomList = lift (shuffle allTiles) randNums    
+    count = length allTiles
+    randNums : Signal [Int]
+    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..count]
+    randomList : Signal CandidateList
+    randomList = lift (shuffle allTiles) randNums
+    inputSignal : Signal KeyMove
     inputSignal = merge Keyboard.wasd Keyboard.arrows
 
   in lift2 Move inputSignal randomList
