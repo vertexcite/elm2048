@@ -284,6 +284,7 @@ shuffle lst randNums = let
 
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
+keyInput : Signal Input
 keyInput = let
     randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..(length allTiles)]
     randomList = lift (shuffle allTiles) randNums    
