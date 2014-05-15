@@ -1,44 +1,3 @@
---2048 in Elm
---Written by Joey Eremondi
---jmitdase@gmail.com
---Based on 2048 by Gabriele Cirulli
---which was based on 1024 by Veewo Studio
---and similar to Threes by Asher Vollme
-
-{- Copyright (c) 2014, Joey Eremondi
-
-All rights reserved.
-
-Redistribution and use in source and binary forms, with or without
-modification, are permitted provided that the following conditions are met:
-
-    * Redistributions of source code must retain the above copyright
-      notice, this list of conditions and the following disclaimer.
-
-    * Redistributions in binary form must reproduce the above
-      copyright notice, this list of conditions and the following
-      disclaimer in the documentation and/or other materials provided
-      with the distribution.
-
-    * Neither the name of Joey Eremondi nor the names of other
-      contributors may be used to endorse or promote products derived
-      from this software without specific prior written permission.
-
-THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR
-A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT
-OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL,
-SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT
-LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE,
-DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY
-THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
-(INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE
-OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
--}
-
-
-
 import Graphics.Collage as Collage
 import Keyboard
 import Random
@@ -211,18 +170,17 @@ direction move =
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
 updateGameState (Move move n) (Playing grid as gs) = if | move.x == 0 && move.y == 0 -> gs
-     | otherwise -> 
-         let
-           dir = direction move 
-           penUpdatedGrid = makeMove dir grid
-         in
-           if has2048 penUpdatedGrid then GameWon penUpdatedGrid
-           else if sameGrid penUpdatedGrid grid then gs  
-           else case (newTile penUpdatedGrid n) of
-             Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-               in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
-             Nothing -> if canMove grid then gs else GameLost penUpdatedGrid
-
+  | otherwise -> 
+    let
+      dir = direction move 
+      penUpdatedGrid = makeMove dir grid
+    in
+      if has2048 penUpdatedGrid then GameWon penUpdatedGrid
+      else if sameGrid penUpdatedGrid grid then gs  
+      else case (newTile penUpdatedGrid n) of
+        Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
+          in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
+        Nothing -> if canMove grid then gs else GameLost penUpdatedGrid
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -289,7 +247,6 @@ drawGame gs = case gs of
   GameWon grid -> let
       messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
     in Collage.group [drawGrid grid, messageForm ]
-
 
 
 --Convert WASD and Arrow input from the user into our input data type
