@@ -119,7 +119,7 @@ shiftSquare dir sq grid =
 shift : Direction -> Grid -> Grid
 shift dir grid = let
     shiftFold = (foldr (shiftSquare dir) []) . (sortBy dir.sorting)
-  in (apply dim shiftFold) grid --apply 4 times, move as far as can
+  in (apply dim shiftFold) grid --apply dim times, move as far as can
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
@@ -253,10 +253,10 @@ drawGame gs = case gs of
 --Bundling it with a random permutations of the tiles each time
 input : Signal Input
 input = let
-    randNum : Signal Int
-    randNum = Random.range 1 (2^31) Keyboard.wasd
     inputSignal : Signal KeyMove
     inputSignal = merge Keyboard.wasd Keyboard.arrows
+    randNum : Signal Int
+    randNum = Random.range 1 (2^31) inputSignal
   in lift2 Move inputSignal randNum
 
 --Wrap everything together: take the game state
