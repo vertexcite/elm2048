@@ -97,6 +97,10 @@ squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
 
+--Get square's coordinates as a tuple (x, y)
+squareCoord : GridSquare -> (Int, Int)
+squareCoord sq = (sq.x, sq.y)
+
 --Returns true if the grid has a 2048
 has2048 : Grid -> Bool
 has2048 grid = case filter (\sq -> sq.contents >= 2048) grid of
@@ -129,47 +133,39 @@ drawGrid grid = let
 sortUp : Grid -> Grid
 sortUp = sortBy (\sq -> sq.y)
 
-sortDown = sortBy (\sq -> -1*sq.y)
+sortDown = sortBy (\sq -> -sq.y)
 
-sortLeft = sortBy (\sq -> -1*sq.x)
+sortLeft = sortBy (\sq -> -sq.x)
 
-sortRight = sortBy (\sq ->  sq.x)
+sortRight = sortBy (\sq -> sq.x)
 
---If there's an empty spot above (below, etc.)
+up : GridSquare -> GridSquare
+up sq = {sq | y <- sq.y + 1}
+
+down : GridSquare -> GridSquare
+down sq = {sq | y <- sq.y - 1}
+
+left : GridSquare -> GridSquare
+left sq = {sq | x <- sq.x - 1}
+
+right : GridSquare -> GridSquare
+right sq = {sq | x <- sq.x + 1}
+
+--If there's an empty spot in target space (i.e. above, below, etc.)
 --Shift the given square into it, otherwise put it in its original place
---Takes in a "partial" grid of squares above (below, etc.) already placed
-shiftSquareUp :  GridSquare -> Grid -> Grid
-shiftSquareUp sq grid = 
-  if sq.y == 4 
+--Takes in a "partial" grid of squares (above or below, etc.) already placed
+shiftSquare :  (GridSquare -> Bool) -> (GridSquare -> GridSquare) -> GridSquare -> Grid -> Grid
+shiftSquare test dirSq sq grid = 
+  if test sq 
     then (sq :: grid)
-    else case squareAt grid (sq.x, sq.y+1) of
-      Nothing -> ({sq | y <- sq.y + 1} :: grid)
-      _ -> (sq :: grid)
-      
-shiftSquareDown :  GridSquare -> Grid -> Grid
-shiftSquareDown sq grid = 
-  if sq.y == 1 
-    then (sq :: grid)
-    else case squareAt grid (sq.x, sq.y-1) of
-      Nothing -> ({sq | y <- sq.y - 1} :: grid)
-      _ -> (sq :: grid)
-    
-shiftSquareLeft :  GridSquare -> Grid -> Grid
-shiftSquareLeft sq grid = 
-  if sq.x == 1
-    then (sq :: grid)
-    else case squareAt grid (sq.x-1, sq.y) of
-      Nothing -> ({sq | x <- sq.x - 1} :: grid)
+    else case squareAt grid (squareCoord (dirSq sq)) of
+      Nothing -> (dirSq sq :: grid)
       _ -> (sq :: grid)
 
-
-shiftSquareRight :  GridSquare -> Grid -> Grid
-shiftSquareRight sq grid = 
-  if sq.x == 4 
-    then (sq :: grid)
-    else case squareAt grid (sq.x+1, sq.y) of
-      Nothing -> ({sq | x <- sq.x + 1} :: grid)
-      _ -> (sq :: grid)
+shiftSquareUp    = shiftSquare (\sq -> sq.y == 4) up
+shiftSquareDown  = shiftSquare (\sq -> sq.y == 1) down
+shiftSquareLeft  = shiftSquare (\sq -> sq.x == 1) left
+shiftSquareRight = shiftSquare (\sq -> sq.x == 4) right
 
 --Functions to shift the squares for each time the player moves
 --To move down, a square moves to the position in the grid where 
@@ -192,37 +188,18 @@ shiftRight = shift shiftSquareRight sortRight
 --the square above (below, left of, right of) it
 --Note that we sort in the opposite order of shifting
 --Since if we're moving up, the bottom square gets absorbed
-mergeSquareUp : GridSquare -> Grid -> Grid
-mergeSquareUp sq grid = case squareAt grid (sq.x, sq.y+1) of
+mergeSquare : (GridSquare -> GridSquare) -> GridSquare -> Grid -> Grid
+mergeSquare dirSq sq grid = case squareAt grid (squareCoord (dirSq sq)) of
   Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (sq.x, sq.y+1) grid
+      then doubleSquare (squareCoord (dirSq sq)) grid
       else (sq::grid)
 
-mergeSquareDown : GridSquare -> Grid -> Grid
-mergeSquareDown sq grid = case squareAt grid (sq.x, sq.y-1) of
-  Nothing -> (sq::grid)
-  Just adj -> 
-    if adj.contents == sq.contents
-      then doubleSquare (sq.x, sq.y-1) grid
-      else (sq::grid)
-      
-mergeSquareLeft : GridSquare -> Grid -> Grid
-mergeSquareLeft sq grid = case squareAt grid (sq.x-1, sq.y) of
-  Nothing -> (sq::grid)
-  Just adj -> 
-    if adj.contents == sq.contents
-      then doubleSquare (sq.x-1, sq.y) grid
-      else (sq::grid)
-      
-mergeSquareRight : GridSquare -> Grid -> Grid
-mergeSquareRight sq grid = case squareAt grid (sq.x+1, sq.y) of
-  Nothing -> (sq::grid)
-  Just adj -> 
-    if adj.contents == sq.contents
-      then doubleSquare (sq.x+1, sq.y) grid
-      else (sq::grid)
+mergeSquareUp    = mergeSquare up
+mergeSquareDown  = mergeSquare down
+mergeSquareLeft  = mergeSquare left
+mergeSquareRight = mergeSquare right
 
 --Apply the merges to tiles in the correct order
 applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
