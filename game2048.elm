@@ -62,9 +62,10 @@ type KeyMove = { x:Int, y:Int }
 data GameState = Playing Grid | GameWon Grid | GameLost Grid
 
 type CandidateList = [((Int, Int), Int)]
+
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-data Input = Move KeyMove CandidateList
+data Input = Move KeyMove Int
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -181,39 +182,46 @@ applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun
 --And double the tile that absorbs it
 mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy <| (\x -> -x) . dir.sorting )
 
---Given a list of tiles, find the first free tile, if any
---Used for placing random elements
-firstFree : Grid -> [((Int, Int), Int)] -> Maybe (Int, Int, Int)
-firstFree grid lst = case lst of
-  [] -> Nothing
-  (((x,y),v)::t) -> case squareAt grid (x,y) of
-    Nothing -> Just (x,y,v)
-    _ -> firstFree grid t
+
+newTile : Grid -> Int -> Maybe (Int, Int, Int)
+newTile g n = let coord = case blanks g of
+    [] -> Nothing
+    bs -> Just <| nth1 (n `mod` length bs) bs
+  in case coord of 
+    Nothing -> Nothing
+    Just (x,y) -> Just (x,y, 2 * (1 + (n `mod` 2)))
+
+blanks : Grid -> [(Int,Int)]
+blanks g = let f x = case squareAt g x of 
+    Nothing -> True
+    _       -> False 
+  in filter f allTiles
 
 makeMove : Direction -> Grid -> Grid
 makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
 
+direction : KeyMove -> Direction
+direction move =
+  if      move.x ==  1 then right
+  else if move.x == -1 then left
+  else if move.y == -1 then down
+  else up
+
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
-updateGameState (Move move lst) (Playing grid as gs) = case move.x == 0 && move.y == 0 of
-  True -> gs
-  _    -> 
-    let
-      dir =  
-        if      move.x ==  1 then right
-        else if move.x == -1 then left
-        else if move.y == -1 then down
-        else up
-      penUpdatedGrid = makeMove dir grid
-    in
-      if has2048 penUpdatedGrid then GameWon penUpdatedGrid
-      else case (firstFree penUpdatedGrid lst) of
-        Just (x,y,v) -> 
-          if sameGrid penUpdatedGrid grid then gs 
-          else let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-          in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
-        Nothing    -> if canMove grid then gs else GameLost penUpdatedGrid
+updateGameState (Move move n) (Playing grid as gs) = if | move.x == 0 && move.y == 0 -> gs
+     | otherwise -> 
+         let
+           dir = direction move 
+           penUpdatedGrid = makeMove dir grid
+         in
+           if has2048 penUpdatedGrid then GameWon penUpdatedGrid
+           else if sameGrid penUpdatedGrid grid then gs  
+           else case (newTile penUpdatedGrid n) of
+             Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
+               in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
+             Nothing -> if canMove grid then gs else GameLost penUpdatedGrid
 
 
 sameGrid : Grid -> Grid -> Bool
@@ -235,8 +243,8 @@ canMove grid =  let
 
 --The different coordinates and value a new tile can have
 --We randomly permute this to add new tiles to the board
-allTiles : CandidateList
-allTiles = product (product [1..dim] [1..dim]) [2,4]
+allTiles : [(Int, Int)]
+allTiles = product [1..dim] [1..dim]
 
 product : [a] -> [b] -> [(a,b)]
 product a b = concatMap (\x -> map (\y -> (x,y)) b) a
@@ -245,30 +253,19 @@ product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 --Will be made more sophisticated in future versions
 startState =  Playing [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}]
 
---Extracts the nth element of a list, starting at 1
+--Extracts the nth element of a list, starting at 0
 --Fails on empty lists
-nth1 : Int -> [a] -> (a,[a])
+nth1 : Int -> [a] -> a
 nth1 n (h::t) = case n of
-  1 -> (h,t)
-  _ -> let 
-      (nth, tailLeftOver) = nth1 (n-1) t
-    in (nth, h::tailLeftOver)
-
---Shuffle the elements of the given list, assuming we have n random numbers
---Not exceeding n, n-1, etc.
-shuffle : CandidateList -> [Int] -> CandidateList
-shuffle lst randNums = let
-    shuffleStep indexToAdd (elemsToAdd, listSoFar) = let
-        (nextElem, leftOver) = nth1 indexToAdd elemsToAdd
-      in (leftOver, nextElem::listSoFar)
-  in snd <| foldr shuffleStep (lst, []) randNums
+  0 -> h
+  _ -> nth1 (n-1) t
 
 -- --------------- Everything above this line is pure functional, below is FRP, rendering, or utils for those -------------------
 offset : Float
 offset = (toFloat dim)/2.0 + 0.5
 
 --Draw an individual square, and translate it into the right position
---We assume each square is 1 "unit" wide, and positioned somewhere in [1,4]*[1,4]
+--We assume each square is 1 "unit" wide, and positioned somewhere in [1,dim]*[1,dim]
 drawSquare : GridSquare -> Form
 drawSquare square = let
     rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
@@ -297,24 +294,20 @@ drawGame gs = case gs of
 
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
-keyInput : Signal Input
-keyInput = let
-    count = length allTiles
-    randNums : Signal [Int]
-    randNums = combine <| map (\upper -> Random.range 1 upper Keyboard.wasd) [1..count]
-    randomList : Signal CandidateList
-    randomList = lift (shuffle allTiles) randNums
+input : Signal Input
+input = let
+    randNum : Signal Int
+    randNum = Random.range 1 (2^31) Keyboard.wasd
     inputSignal : Signal KeyMove
     inputSignal = merge Keyboard.wasd Keyboard.arrows
-
-  in lift2 Move inputSignal randomList
+  in lift2 Move inputSignal randNum
 
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
 --Then convert it to an Element and draw it to the screen
 main = let
     gameState : Signal GameState
-    gameState = foldp updateGameState startState keyInput
+    gameState = foldp updateGameState startState input
     rawFormList = lift (\x -> [drawGame x]) gameState
     scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
     makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-(toFloat dim))) (toFloat y/(-(toFloat dim)) )) (TF.scale <| scaleFor x y)  
