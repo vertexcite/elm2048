@@ -171,16 +171,16 @@ direction move =
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 coreUpdate : Direction -> Int -> GameState -> GameState
-coreUpdate dir n ((_, grid, previous::olderHistory as history) as gs) = 
+coreUpdate dir n ((_, grid, hist) as gs) = 
   let
     penUpdatedGrid = makeMove dir grid
   in
-    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: history)
+    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: hist)
     else if sameGrid penUpdatedGrid grid then gs  
     else case (newTile penUpdatedGrid n) of
       Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-        in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: history) else (GameLost, updatedGrid, history)
-      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: history)
+        in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: hist) else (GameLost, updatedGrid, hist)
+      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: hist)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -222,12 +222,6 @@ nth1 n (h::t) = case n of
 offset : Float
 offset = (toFloat dim)/2.0 + 0.5
 
-updateGameState : Input -> GameState -> GameState
-updateGameState (move, control, n) ((_, _, previous::olderHistory as history) as gs) = 
-  if control == 74 then (Playing, previous, olderHistory)
-  else if move.x == 0 && move.y == 0 then gs
-  else coreUpdate (direction move) n gs
-
 --Draw an individual square, and translate it into the right position
 --We assume each square is 1 "unit" wide, and positioned somewhere in [1,dim]*[1,dim]
 drawSquare : GridSquare -> Form
@@ -254,10 +248,17 @@ drawGame (playState, grid, _) = case playState of
   GameWon -> drawMessageAndGrid "Congratulations!" grid
 
 arrows = merge Keyboard.arrows Keyboard.wasd
-    
+
 input = (,,) <~ arrows ~ Keyboard.lastPressed ~ (Random.range 1 (2^31) arrows)
 
-{-
+updateGameState : Input -> GameState -> GameState
+updateGameState (move, control, n) ((_, _, history) as state) =
+  if control == 74 then case history of 
+    []    -> state
+    g::gs -> (Playing, g, gs)
+  else if move.x == 0 && move.y == 0 then state
+  else coreUpdate (direction move) n state
+
 gameState : Signal GameState
 gameState = foldp updateGameState startState input
 
@@ -268,8 +269,12 @@ tform = lift makeTform Window.dimensions
 gameForm = lift2 Collage.groupTransform tform rawFormList
 formList = lift (\x -> [x]) gameForm
 collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
--}
+
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
 --Then convert it to an Element and draw it to the screen
-main = asText <~ input {-} (\f l -> f l) <~ collageFunc ~ formList -}
+main1 = (\f l -> f l) <~ collageFunc ~ formList
+
+-- main2 = asText <~ gameState -- Useful for debugging
+-- main = above <~ main1 ~ main2
+main = main1
