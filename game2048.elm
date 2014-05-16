@@ -17,10 +17,12 @@ type Grid = [GridSquare]
 --The move data given from the keyboard
 type KeyMove = { x:Int, y:Int }
 
---Represent different states the came can be in
-data GameState = Playing Grid | GameWon Grid | GameLost Grid
+--Represent different states of play possible
+data PlayState = Playing | GameWon | GameLost
 
-type CandidateList = [((Int, Int), Int)]
+type History = [Grid]
+
+type GameState = (PlayState, Grid, History) 
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
@@ -169,18 +171,18 @@ direction move =
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
-updateGameState (Move move n _) (Playing grid as gs) = if | move.x == 0 && move.y == 0 -> gs
+updateGameState (Move move n _) ((_, grid, history) as gs) = if | move.x == 0 && move.y == 0 -> gs
   | otherwise -> 
     let
       dir = direction move 
       penUpdatedGrid = makeMove dir grid
     in
-      if has2048 penUpdatedGrid then GameWon penUpdatedGrid
+      if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: history)
       else if sameGrid penUpdatedGrid grid then gs  
       else case (newTile penUpdatedGrid n) of
         Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-          in if canMove updatedGrid then Playing updatedGrid else GameLost updatedGrid
-        Nothing -> if canMove grid then gs else GameLost penUpdatedGrid
+          in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: history) else (GameLost, updatedGrid, history)
+        Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: history)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -209,7 +211,7 @@ product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 
 --For now, we always start with the same two tiles
 --Will be made more sophisticated in future versions
-startState =  Playing [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}]
+startState =  (Playing, [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}], [])
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
@@ -238,16 +240,14 @@ drawGrid grid = let
     background =  Collage.move (offset, offset) <| Collage.filled black <| Collage.square (toFloat dim) 
   in Collage.group <| [background]++gridForms 
 
---Given a game state, convert it to a form to be drawn
-drawGame gs = case gs of
-  Playing grid -> drawGrid grid
-  GameLost grid -> let
-      messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Game Over" )
-    in Collage.group [drawGrid grid, messageForm ]
-  GameWon grid -> let
-      messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText "Congratulations")
+drawMessageAndGrid message grid = let messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText message )
     in Collage.group [drawGrid grid, messageForm ]
 
+--Given a game state, convert it to a form to be drawn
+drawGame (playState, grid, _) = case playState of
+  Playing -> drawGrid grid
+  GameLost -> drawMessageAndGrid "GameOver" grid
+  GameWon -> drawMessageAndGrid "Congratulations!" grid
 
 --Convert WASD and Arrow input from the user into our input data type
 --Bundling it with a random permutations of the tiles each time
