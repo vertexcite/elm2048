@@ -24,7 +24,7 @@ type CandidateList = [((Int, Int), Int)]
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-data Input = Move KeyMove Int
+data Input = Move KeyMove Int Keyboard.KeyCode
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -169,7 +169,7 @@ direction move =
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
 updateGameState : Input -> GameState -> GameState
-updateGameState (Move move n) (Playing grid as gs) = if | move.x == 0 && move.y == 0 -> gs
+updateGameState (Move move n _) (Playing grid as gs) = if | move.x == 0 && move.y == 0 -> gs
   | otherwise -> 
     let
       dir = direction move 
@@ -257,7 +257,7 @@ input = let
     inputSignal = merge Keyboard.wasd Keyboard.arrows
     randNum : Signal Int
     randNum = Random.range 1 (2^31) inputSignal
-  in lift2 Move inputSignal randNum
+  in Move <~ inputSignal ~ randNum ~ Keyboard.lastPressed
 
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
