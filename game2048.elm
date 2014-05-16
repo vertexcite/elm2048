@@ -26,7 +26,7 @@ type GameState = (PlayState, Grid, History)
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-data Input = Move KeyMove Int Keyboard.KeyCode
+type Input = (KeyMove, Keyboard.KeyCode, Int)
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -170,19 +170,17 @@ direction move =
 
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
-updateGameState : Input -> GameState -> GameState
-updateGameState (Move move n _) ((_, grid, history) as gs) = if | move.x == 0 && move.y == 0 -> gs
-  | otherwise -> 
-    let
-      dir = direction move 
-      penUpdatedGrid = makeMove dir grid
-    in
-      if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: history)
-      else if sameGrid penUpdatedGrid grid then gs  
-      else case (newTile penUpdatedGrid n) of
-        Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-          in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: history) else (GameLost, updatedGrid, history)
-        Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: history)
+coreUpdate : Direction -> Int -> GameState -> GameState
+coreUpdate dir n ((_, grid, previous::olderHistory as history) as gs) = 
+  let
+    penUpdatedGrid = makeMove dir grid
+  in
+    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: history)
+    else if sameGrid penUpdatedGrid grid then gs  
+    else case (newTile penUpdatedGrid n) of
+      Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
+        in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: history) else (GameLost, updatedGrid, history)
+      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: history)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -224,6 +222,12 @@ nth1 n (h::t) = case n of
 offset : Float
 offset = (toFloat dim)/2.0 + 0.5
 
+updateGameState : Input -> GameState -> GameState
+updateGameState (move, control, n) ((_, _, previous::olderHistory as history) as gs) = 
+  if control == 74 then (Playing, previous, olderHistory)
+  else if move.x == 0 && move.y == 0 then gs
+  else coreUpdate (direction move) n gs
+
 --Draw an individual square, and translate it into the right position
 --We assume each square is 1 "unit" wide, and positioned somewhere in [1,dim]*[1,dim]
 drawSquare : GridSquare -> Form
@@ -249,27 +253,23 @@ drawGame (playState, grid, _) = case playState of
   GameLost -> drawMessageAndGrid "GameOver" grid
   GameWon -> drawMessageAndGrid "Congratulations!" grid
 
---Convert WASD and Arrow input from the user into our input data type
---Bundling it with a random permutations of the tiles each time
-input : Signal Input
-input = let
-    inputSignal : Signal KeyMove
-    inputSignal = merge Keyboard.wasd Keyboard.arrows
-    randNum : Signal Int
-    randNum = Random.range 1 (2^31) inputSignal
-  in Move <~ inputSignal ~ randNum ~ Keyboard.lastPressed
+arrows = merge Keyboard.arrows Keyboard.wasd
+    
+input = (,,) <~ arrows ~ Keyboard.lastPressed ~ (Random.range 1 (2^31) arrows)
 
+{-
+gameState : Signal GameState
+gameState = foldp updateGameState startState input
+
+rawFormList = lift (\x -> [drawGame x]) gameState
+scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
+makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-(toFloat dim))) (toFloat y/(-(toFloat dim)) )) (TF.scale <| scaleFor x y)  
+tform = lift makeTform Window.dimensions
+gameForm = lift2 Collage.groupTransform tform rawFormList
+formList = lift (\x -> [x]) gameForm
+collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
+-}
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
 --Then convert it to an Element and draw it to the screen
-main = let
-    gameState : Signal GameState
-    gameState = foldp updateGameState startState input
-    rawFormList = lift (\x -> [drawGame x]) gameState
-    scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
-    makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-(toFloat dim))) (toFloat y/(-(toFloat dim)) )) (TF.scale <| scaleFor x y)  
-    tform = lift makeTform Window.dimensions
-    gameForm = lift2 Collage.groupTransform tform rawFormList
-    formList = lift (\x -> [x]) gameForm
-    collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
-   in lift2 {-(asText . show) gameState-} (\f l -> f l) collageFunc formList
+main = asText <~ input {-} (\f l -> f l) <~ collageFunc ~ formList -}
