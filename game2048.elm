@@ -175,12 +175,12 @@ coreUpdate dir n ((_, grid, hist) as gs) =
   let
     penUpdatedGrid = makeMove dir grid
   in
-    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, penUpdatedGrid :: hist)
+    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, grid :: hist)
     else if sameGrid penUpdatedGrid grid then gs  
     else case (newTile penUpdatedGrid n) of
       Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
-        in if canMove updatedGrid then (Playing, updatedGrid, updatedGrid :: hist) else (GameLost, updatedGrid, hist)
-      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, penUpdatedGrid :: hist)
+        in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
+      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -209,7 +209,8 @@ product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 
 --For now, we always start with the same two tiles
 --Will be made more sophisticated in future versions
-startState =  (Playing, [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}], [])
+startGrid = [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}]
+startState =  (Playing, startGrid, [])
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
@@ -270,15 +271,18 @@ rawFormList = (\x -> [drawGame x]) <~ gameState
 historyForm : [Grid] -> [Form]
 historyForm gs = map drawGrid gs
 
-historyFormTransformed : [Form] -> [Form]
+historyFormTransformed : [Form] -> Form
 historyFormTransformed gs = let zs = zip [1.. length gs] gs 
-  in map (\(s,g) -> scale 0.1 <| moveX (1 * toFloat s) g) zs
+  in moveY 5 <| group <| map (\(s,g) -> scale 0.1 <| moveX (1 * toFloat s) g) zs
 
 f : GameState -> [Grid]
 f (_,_,gs) = gs
 
-a : Signal [Form]
+a : Signal Form
 a = historyFormTransformed . historyForm . f <~ gameState
+
+b : Signal [Form]
+b = (::) <~ a ~ rawFormList
 
 scaleFor : Int -> Int -> Float
 scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
@@ -290,7 +294,7 @@ tform : Signal TF.Transform2D
 tform = makeTform <~ Window.dimensions
 
 gameForm : Signal Form
-gameForm = Collage.groupTransform <~ tform ~ a
+gameForm = Collage.groupTransform <~ tform ~ b
 
 formList : Signal [Form]
 formList = (\x -> [x]) <~ gameForm
