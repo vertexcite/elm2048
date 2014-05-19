@@ -268,22 +268,6 @@ gameState = foldp updateGameState startState input
 rawFormList : Signal [Form]
 rawFormList = (\x -> [drawGame x]) <~ gameState
 
-historyForm : [Grid] -> [Form]
-historyForm gs = map drawGrid gs
-
-historyFormTransformed : [Form] -> Form
-historyFormTransformed gs = let zs = zip [1.. length gs] gs 
-  in moveY 5 <| group <| map (\(s,g) -> scale 0.1 <| moveX (1 * toFloat s) g) zs
-
-f : GameState -> [Grid]
-f (_,_,gs) = gs
-
-a : Signal Form
-a = historyFormTransformed . historyForm . f <~ gameState
-
-b : Signal [Form]
-b = (::) <~ a ~ rawFormList
-
 scaleFor : Int -> Int -> Float
 scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
 
@@ -294,7 +278,7 @@ tform : Signal TF.Transform2D
 tform = makeTform <~ Window.dimensions
 
 gameForm : Signal Form
-gameForm = Collage.groupTransform <~ tform ~ b
+gameForm = Collage.groupTransform <~ tform ~ rawFormList
 
 formList : Signal [Form]
 formList = (\x -> [x]) <~ gameForm
