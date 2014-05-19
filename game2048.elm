@@ -238,10 +238,12 @@ drawGrid grid = let
     background =  Collage.move (offset, offset) <| Collage.filled black <| Collage.square (toFloat dim) 
   in Collage.group <| [background]++gridForms 
 
+drawMessageAndGrid : String -> Grid -> Form
 drawMessageAndGrid message grid = let messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText message )
     in Collage.group [drawGrid grid, messageForm ]
 
 --Given a game state, convert it to a form to be drawn
+drawGame : GameState -> Form
 drawGame (playState, grid, _) = case playState of
   Playing -> drawGrid grid
   GameLost -> drawMessageAndGrid "GameOver" grid
@@ -262,18 +264,31 @@ updateGameState (move, control, n) ((_, _, history) as state) =
 gameState : Signal GameState
 gameState = foldp updateGameState startState input
 
-rawFormList = lift (\x -> [drawGame x]) gameState
+rawFormList : Signal [Form]
+rawFormList = (\x -> [drawGame x]) <~ gameState
+
+scaleFor : Int -> Int -> Float
 scaleFor x y = (toFloat (min x y))/(2 * toFloat dim)
+
+makeTform : (Int, Int) -> TF.Transform2D
 makeTform (x,y) = TF.multiply (TF.translation (toFloat x/(-(toFloat dim))) (toFloat y/(-(toFloat dim)) )) (TF.scale <| scaleFor x y)  
-tform = lift makeTform Window.dimensions
-gameForm = lift2 Collage.groupTransform tform rawFormList
-formList = lift (\x -> [x]) gameForm
-collageFunc = lift (\(x,y) -> collage x y) Window.dimensions
+
+tform : Signal TF.Transform2D
+tform = makeTform <~ Window.dimensions
+
+gameForm : Signal Form
+gameForm = Collage.groupTransform <~ tform ~ rawFormList
+
+formList : Signal [Form]
+formList = (\x -> [x]) <~ gameForm
+
+collageFunc : Signal ([Form] -> Element)
+collageFunc = (\(x,y) -> collage x y) <~ Window.dimensions
 
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
 --Then convert it to an Element and draw it to the screen
-main1 = (\f l -> f l) <~ collageFunc ~ formList
+main1 = collageFunc ~ formList
 
 -- main2 = asText <~ gameState -- Useful for debugging
 -- main = above <~ main1 ~ main2
