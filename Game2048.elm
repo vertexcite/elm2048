@@ -1,3 +1,5 @@
+module Game2048 where
+
 import Graphics.Collage as Collage
 import Keyboard
 import Random
@@ -219,7 +221,7 @@ startGrid n = let
         Just t2 -> [t1, t2]
         _ -> [t1]
 
-startState = (Playing, [], [])
+startState n = (Playing, startGrid n, [])
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
@@ -273,8 +275,10 @@ updateGameState (move, control, n) ((_, grid, history) as state) =
      | move.x == 0 && move.y == 0 -> state
      | otherwise -> coreUpdate (direction move) n state
 
+port seed : Int
+
 gameState : Signal GameState
-gameState = foldp updateGameState startState input
+gameState = foldp updateGameState (startState seed) input
 
 rawFormList : Signal [Form]
 rawFormList = (\x -> [drawGame x]) <~ gameState
