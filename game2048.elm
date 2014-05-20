@@ -175,8 +175,8 @@ coreUpdate dir n ((_, grid, hist) as gs) =
   let
     penUpdatedGrid = makeMove dir grid
   in
-    if has2048 penUpdatedGrid then (GameWon, penUpdatedGrid, grid :: hist)
-    else if sameGrid penUpdatedGrid grid then gs  
+    if sameGrid penUpdatedGrid grid then gs
+    else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist)
     else case (newTile penUpdatedGrid n) of
       Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
         in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
