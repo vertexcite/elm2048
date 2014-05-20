@@ -144,13 +144,13 @@ applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun
 mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy <| (\x -> -x) . dir.sorting )
 
 
-newTile : Grid -> Int -> Maybe (Int, Int, Int)
+newTile : Grid -> Int -> Maybe GridSquare
 newTile g n = let coord = case blanks g of
     [] -> Nothing
     bs -> Just <| nth1 (n `mod` length bs) bs
   in case coord of 
     Nothing -> Nothing
-    Just (x,y) -> Just (x,y, 2 * (1 + (n `mod` 2)))
+    Just (x,y) -> Just {x=x, y=y, contents = 2 * (1 + (n `mod` 2)) }
 
 blanks : Grid -> [(Int,Int)]
 blanks g = let f x = case squareAt g x of 
@@ -178,7 +178,7 @@ coreUpdate dir n ((_, grid, hist) as gs) =
     if sameGrid penUpdatedGrid grid then gs
     else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist)
     else case (newTile penUpdatedGrid n) of
-      Just (x,y,v) -> let updatedGrid = ({contents=v, x=x,y=y}::  penUpdatedGrid)
+      Just t -> let updatedGrid = t::penUpdatedGrid
         in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
       Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist)
 
@@ -207,10 +207,19 @@ allTiles = product [1..dim] [1..dim]
 product : [a] -> [b] -> [(a,b)]
 product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 
---For now, we always start with the same two tiles
---Will be made more sophisticated in future versions
-startGrid = [{contents=2, x=1, y=dim},{contents=2, x=dim, y=1}]
-startState =  (Playing, startGrid, [])
+startGrid n = let 
+    m1 = newTile [] n
+    m2 = case m1 of 
+      Just t1 -> newTile [t1] (n `div` 2)   
+      _ -> Nothing
+  in case (m1, m2) of
+    (Nothing, _) -> []
+    (Just t1, _) ->
+      case m2 of 
+        Just t2 -> [t1, t2]
+        _ -> [t1]
+
+startState = (Playing, [], [])
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
@@ -255,12 +264,14 @@ arrows = merge Keyboard.arrows Keyboard.wasd
 input = (,,) <~ arrows ~ Keyboard.lastPressed ~ (Random.range 1 (2^31) arrows)
 
 updateGameState : Input -> GameState -> GameState
-updateGameState (move, control, n) ((_, _, history) as state) =
-  if control == 74 then case history of 
-    []    -> state
-    g::gs -> (Playing, g, gs)
-  else if move.x == 0 && move.y == 0 then state
-  else coreUpdate (direction move) n state
+updateGameState (move, control, n) ((_, grid, history) as state) =
+  if | grid == [] -> (Playing, startGrid n, [])
+     | control == 74 ->
+          case history of 
+            []    -> state
+            g::gs -> (Playing, g, gs)
+     | move.x == 0 && move.y == 0 -> state
+     | otherwise -> coreUpdate (direction move) n state
 
 gameState : Signal GameState
 gameState = foldp updateGameState startState input
