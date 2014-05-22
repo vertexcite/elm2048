@@ -238,7 +238,7 @@ offset = (toFloat dim)/2.0 + 0.5
 --We assume each square is 1 "unit" wide, and positioned somewhere in [1,dim]*[1,dim]
 drawSquare : GridSquare -> Form
 drawSquare square = let
-    rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 1
+    rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 0.9
     numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| plainText <| show square.contents
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
