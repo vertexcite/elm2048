@@ -5,6 +5,9 @@ import Keyboard
 import Random
 import Transform2D as TF
 
+import Touch.Cardinal as Cardinal
+import Touch.Gestures as Gestures
+
 import Window
 
 dim : Int
@@ -16,9 +19,6 @@ type GridSquare = {contents: Int, x:Int, y:Int}
 --The whole game is just the list of squares
 type Grid = [GridSquare]
 
---The move data given from the keyboard
-type KeyMove = { x:Int, y:Int }
-
 --Represent different states of play possible
 data PlayState = Playing | GameWon | GameLost
 
@@ -28,7 +28,7 @@ type GameState = (PlayState, Grid, History)
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-type Input = (KeyMove, Keyboard.KeyCode, Int)
+type Input = (Cardinal.Direction, Keyboard.KeyCode, Int)
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -163,26 +163,31 @@ blanks g = let f x = case squareAt g x of
 makeMove : Direction -> Grid -> Grid
 makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
 
-direction : KeyMove -> Direction
-direction move =
-  if      move.x ==  1 then right
-  else if move.x == -1 then left
-  else if move.y == -1 then down
-  else up
+direction : Cardinal.Direction -> Maybe Direction
+direction move = 
+  case move of
+    Cardinal.Right -> Just right
+    Cardinal.Left  -> Just left
+    Cardinal.Up    -> Just up
+    Cardinal.Down  -> Just down
+    _ -> Nothing
 
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
-coreUpdate : Direction -> Int -> GameState -> GameState
-coreUpdate dir n ((_, grid, hist) as gs) = 
-  let
-    penUpdatedGrid = makeMove dir grid
-  in
-    if sameGrid penUpdatedGrid grid then gs
-    else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist)
-    else case (newTile penUpdatedGrid n) of
-      Just t -> let updatedGrid = t::penUpdatedGrid
-        in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
-      Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist)
+coreUpdate : Maybe Direction -> Int -> GameState -> GameState
+coreUpdate mdir n ((_, grid, hist) as gs) = 
+  case mdir of 
+    Nothing -> gs
+    Just dir ->
+      let
+        penUpdatedGrid = makeMove dir grid
+      in
+        if sameGrid penUpdatedGrid grid then gs
+        else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist)
+        else case (newTile penUpdatedGrid n) of
+          Just t -> let updatedGrid = t::penUpdatedGrid
+            in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
+          Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -261,8 +266,10 @@ drawGame (playState, grid, _) = case playState of
   GameLost -> drawMessageAndGrid "GameOver" grid
   GameWon -> drawMessageAndGrid "Congratulations!" grid
 
-arrows = merge Keyboard.arrows Keyboard.wasd
+arrows : Signal Cardinal.Direction
+arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
+input : Signal (Cardinal.Direction, Keyboard.KeyCode, Int)
 input = (,,) <~ arrows ~ Keyboard.lastPressed ~ (Random.range 1 (2^31) arrows)
 
 updateGameState : Input -> GameState -> GameState
@@ -272,7 +279,7 @@ updateGameState (move, control, n) ((_, grid, history) as state) =
           case history of 
             []    -> state
             g::gs -> (Playing, g, gs)
-     | move.x == 0 && move.y == 0 -> state
+     | move == Cardinal.Nowhere -> state
      | otherwise -> coreUpdate (direction move) n state
 
 port seed : Int
