@@ -91,50 +91,64 @@ doubleSquare coords grid = let
     removedGrid = deleteSquare coords grid
   in ({sq | contents <- sq.contents*2} :: removedGrid)
 
-type Direction = {move:GridSquare -> GridSquare, sorting:GridSquare -> Int, atEdge:GridSquare -> Bool}
+type Direction = GridSquare -> GridSquare
+
+flipy : GridSquare -> GridSquare
+flipy sq =  {sq | y <- dim - sq.y + 1}
+
+transpose : GridSquare -> GridSquare
+transpose sq = {sq | y <- sq.x, x <- sq.y }
 
 up : Direction
-up    = { move = \sq -> {sq | y <- sq.y + 1}, sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == dim }
+up = id
+-- up , sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == dim }
 
 down : Direction
-down  = { move = \sq -> {sq | y <- sq.y - 1}, sorting = \sq -> -sq.y, atEdge = \sq -> sq.y == 1 }
-
-left : Direction
-left  = { move = \sq -> {sq | x <- sq.x - 1}, sorting = \sq -> -sq.x, atEdge = \sq -> sq.x == 1 }
+down = flipy
 
 right : Direction
-right = { move = \sq -> {sq | x <- sq.x + 1}, sorting = \sq ->  sq.x, atEdge = \sq -> sq.x == dim }
+right = transpose
+
+-- Could have used left = flipy . transpose, but then would need to reverse the effect of left with a different transform.  This one is its own inverse.
+left : Direction
+left sq = {sq | y <- dim - sq.x + 1, x <- dim - sq.y + 1}
+
+move : GridSquare -> GridSquare
+move sq = {sq | y <- sq.y + 1}
+
+atEdge: GridSquare -> Bool
+atEdge sq = sq.y == dim
 
 --If there's an empty spot in target space (i.e. above, below, etc.)
 --Shift the given square into it, otherwise put it in its original place
 --Takes in a "partial" grid of squares (above or below, etc.) already placed
-shiftSquare :  Direction -> GridSquare -> Grid -> Grid
-shiftSquare dir sq grid = 
-  if dir.atEdge sq 
+shiftSquare :  GridSquare -> Grid -> Grid
+shiftSquare sq grid = 
+  if atEdge sq 
     then (sq :: grid)
-    else case squareAt grid (squareCoord (dir.move sq)) of
-      Nothing -> (dir.move sq :: grid)
+    else case squareAt grid (squareCoord (move sq)) of
+      Nothing -> (move sq :: grid)
       _ -> (sq :: grid)
 
 --Functions to shift the squares for each time the player moves
 --To move down, a square moves to the position in the grid where 
 --Except when squares get combined
 --Similar math is performed for left, right, etc.
-shift : Direction -> Grid -> Grid
-shift dir grid = let
-    shiftFold = (foldr (shiftSquare dir) []) . (sortBy dir.sorting)
+shift : Grid -> Grid
+shift grid = let
+    shiftFold = (foldr (shiftSquare) []) . (sortBy (\sq -> sq.y))
   in (apply dim shiftFold) grid --apply dim times, move as far as can
 
 --Functions to look at a given square, and see if it can be merged with
 --the square above (below, left of, right of) it
 --Note that we sort in the opposite order of shifting
 --Since if we're moving up, the bottom square gets absorbed
-mergeSquare : Direction -> GridSquare -> Grid -> Grid
-mergeSquare dir sq grid = case squareAt grid (squareCoord (dir.move sq)) of
+mergeSquare : GridSquare -> Grid -> Grid
+mergeSquare sq grid = case squareAt grid (squareCoord (move sq)) of
   Nothing -> (sq::grid)
   Just adj -> 
     if adj.contents == sq.contents
-      then doubleSquare (squareCoord (dir.move sq)) grid
+      then doubleSquare (squareCoord (move sq)) grid
       else (sq::grid)
 
 --Apply the merges to tiles in the correct order
@@ -143,7 +157,7 @@ applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun
 --Given a grid and a square, see if that square can be merged
 --by moving up (down, left, right) and if so, do the merge
 --And double the tile that absorbs it
-mergeGrid dir = applyInOrder (mergeSquare dir) (sortBy <| (\x -> -x) . dir.sorting )
+mergeGrid = applyInOrder mergeSquare (sortBy (\sq -> -sq.y))
 
 
 newTile : Grid -> Int -> Maybe GridSquare
@@ -161,7 +175,7 @@ blanks g = let f x = case squareAt g x of
   in filter f allTiles
 
 makeMove : Direction -> Grid -> Grid
-makeMove dir grid = (shift dir) <| (mergeGrid dir) <| (shift dir) grid
+makeMove dir grid = map dir <| shift <| mergeGrid <| shift <| map dir grid
 
 direction : Cardinal.Direction -> Maybe Direction
 direction move = 
