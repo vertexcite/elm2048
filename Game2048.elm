@@ -60,7 +60,7 @@ scaleForNumber n = if
 apply : Int -> (a -> a) -> (a -> a)
 apply n f = 
   if | n == 0 -> f
-     | otherwise -> f . apply (n-1) f
+     | otherwise -> f << apply (n-1) f
 
 --Get the square at a given position in the grid
 squareAt : Grid -> (Int, Int) -> Maybe GridSquare
@@ -100,7 +100,7 @@ transpose : GridSquare -> GridSquare
 transpose sq = {sq | y <- sq.x, x <- sq.y }
 
 up : Direction
-up = id
+up = identity
 -- up , sorting = \sq ->  sq.y, atEdge = \sq -> sq.y == dim }
 
 down : Direction
@@ -136,7 +136,7 @@ shiftSquare sq grid =
 --Similar math is performed for left, right, etc.
 shift : Grid -> Grid
 shift grid = let
-    shiftFold = (foldr (shiftSquare) []) . (sortBy (\sq -> sq.y))
+    shiftFold = (foldr (shiftSquare) []) << (sortBy (\sq -> sq.y))
   in (apply dim shiftFold) grid --apply dim times, move as far as can
 
 --Functions to look at a given square, and see if it can be merged with
@@ -152,7 +152,7 @@ mergeSquare sq grid = case squareAt grid (squareCoord (move sq)) of
       else (sq::grid)
 
 --Apply the merges to tiles in the correct order
-applyInOrder mergeFun sortFun = (foldl mergeFun []) . sortFun 
+applyInOrder mergeFun sortFun = (foldl mergeFun []) << sortFun 
 
 --Given a grid and a square, see if that square can be merged
 --by moving up (down, left, right) and if so, do the merge
@@ -163,10 +163,10 @@ mergeGrid = applyInOrder mergeSquare (sortBy (\sq -> -sq.y))
 newTile : Grid -> Int -> Maybe GridSquare
 newTile g n = let coord = case blanks g of
     [] -> Nothing
-    bs -> Just <| nth1 (n `mod` length bs) bs
+    bs -> Just <| nth1 (n % length bs) bs
   in case coord of 
     Nothing -> Nothing
-    Just (x,y) -> Just {x=x, y=y, contents = 2 * (1 + (n `mod` 2)) }
+    Just (x,y) -> Just {x=x, y=y, contents = 2 * (1 + (n % 2)) }
 
 blanks : Grid -> [(Int,Int)]
 blanks g = let f x = case squareAt g x of 
@@ -231,7 +231,7 @@ product a b = concatMap (\x -> map (\y -> (x,y)) b) a
 startGrid n = let 
     m1 = newTile [] n
     m2 = case m1 of 
-      Just t1 -> newTile [t1] (n `div` 2)   
+      Just t1 -> newTile [t1] (n // 2)   
       _ -> Nothing
   in case (m1, m2) of
     (Nothing, _) -> []
