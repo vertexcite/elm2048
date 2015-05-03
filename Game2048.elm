@@ -4,6 +4,12 @@ import Graphics.Collage as Collage
 import Keyboard
 import Random
 import Transform2D as TF
+import List exposing (..)
+import Color exposing (rgb, green, black, grey)
+import Graphics.Element exposing (show, color, centered, Element)
+import Graphics.Collage exposing (Form)
+import Text exposing (fromString)
+import Signal exposing (..)
 
 import Touch.Cardinal as Cardinal
 import Touch.Gestures as Gestures
@@ -14,21 +20,21 @@ dim : Int
 dim = 4
 
 --Represent each square of the game
-type GridSquare = {contents: Int, x:Int, y:Int}
+type alias GridSquare = {contents: Int, x:Int, y:Int}
 
 --The whole game is just the list of squares
-type Grid = [GridSquare]
+type alias Grid = List GridSquare
 
 --Represent different states of play possible
-data PlayState = Playing | GameWon | GameLost
+type PlayState = Playing | GameWon | GameLost
 
-type History = [Grid]
+type alias History = List Grid
 
-type GameState = (PlayState, Grid, History) 
+type alias GameState = (PlayState, Grid, History) 
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-type Input = (Cardinal.Direction, Keyboard.KeyCode, Int)
+type alias Input = (Cardinal.Direction, Keyboard.KeyCode, Int)
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -64,7 +70,7 @@ apply n f =
 
 --Get the square at a given position in the grid
 squareAt : Grid -> (Int, Int) -> Maybe GridSquare
-squareAt grid (x,y) = case filter (\sq -> sq.x == x && sq.y == y) grid of
+squareAt grid (x,y) = case List.filter (\sq -> sq.x == x && sq.y == y) grid of
   [] -> Nothing
   [sq] -> Just sq
 
@@ -74,13 +80,13 @@ squareCoord sq = (sq.x, sq.y)
 
 --Returns true if the grid has a 2048
 has2048 : Grid -> Bool
-has2048 grid = case filter (\sq -> sq.contents >= 2048) grid of
+has2048 grid = case List.filter (\sq -> sq.contents >= 2048) grid of
     [] -> False
     _ -> True
   
 --Delete a square from a given position, if it exists
 deleteSquare : (Int, Int) -> Grid -> Grid
-deleteSquare (x,y) = filter (\sq -> not <| sq.x == x && sq.y == y)
+deleteSquare (x,y) = List.filter (\sq -> not <| sq.x == x && sq.y == y)
 
 --Double the value of a given square
 --Fails if the square does not exist
@@ -91,7 +97,7 @@ doubleSquare coords grid = let
     removedGrid = deleteSquare coords grid
   in ({sq | contents <- sq.contents*2} :: removedGrid)
 
-type Direction = GridSquare -> GridSquare
+type alias Direction = GridSquare -> GridSquare
 
 flipy : GridSquare -> GridSquare
 flipy sq =  {sq | y <- dim - sq.y + 1}
@@ -168,14 +174,14 @@ newTile g n = let coord = case blanks g of
     Nothing -> Nothing
     Just (x,y) -> Just {x=x, y=y, contents = 2 * (1 + (n % 2)) }
 
-blanks : Grid -> [(Int,Int)]
+blanks : Grid -> List (Int,Int)
 blanks g = let f x = case squareAt g x of 
     Nothing -> True
     _       -> False 
-  in filter f allTiles
+  in List.filter f allTiles
 
 makeMove : Direction -> Grid -> Grid
-makeMove dir grid = map dir <| shift <| mergeGrid <| shift <| map dir grid
+makeMove dir grid = List.map dir <| shift <| mergeGrid <| shift <| List.map dir grid
 
 direction : Cardinal.Direction -> Maybe Direction
 direction move = 
@@ -214,19 +220,19 @@ sameGrid g1 g2 =
 
 canMove : Grid -> Bool
 canMove grid =  let
-    possibleGrids : [Grid]
-    possibleGrids = map (\x -> makeMove x grid) [up, down, left, right]
+    possibleGrids : List Grid
+    possibleGrids = List.map (\x -> makeMove x grid) [up, down, left, right]
     live : Grid -> Bool
     live x = not (sameGrid grid x)
   in any live possibleGrids
 
 --The different coordinates and value a new tile can have
 --We randomly permute this to add new tiles to the board
-allTiles : [(Int, Int)]
+allTiles : List (Int, Int)
 allTiles = product [1..dim] [1..dim]
 
-product : [a] -> [b] -> [(a,b)]
-product a b = concatMap (\x -> map (\y -> (x,y)) b) a
+product : List a -> List b -> List (a,b)
+product a b = concatMap (\x -> List.map (\y -> (x,y)) b) a
 
 startGrid n = let 
     m1 = newTile [] n
@@ -244,7 +250,7 @@ startState n = (Playing, startGrid n, [])
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
-nth1 : Int -> [a] -> a
+nth1 : Int -> List a -> a
 nth1 n (h::t) = case n of
   0 -> h
   _ -> nth1 (n-1) t
@@ -258,19 +264,19 @@ offset = (toFloat dim)/2.0 + 0.5
 drawSquare : GridSquare -> Form
 drawSquare square = let
     rawSquare = Collage.filled (colorFor square.contents) <| Collage.square 0.9
-    numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| plainText <| show square.contents
+    numElem = Collage.scale (scaleForNumber square.contents)<| Collage.toForm <| show square.contents
     completeSquare = Collage.group [rawSquare, numElem]
   in Collage.move (toFloat square.x, toFloat square.y) completeSquare
   
 --Convert the list of squares to a Form to be drawn
 drawGrid : Grid -> Form
 drawGrid grid = let
-    gridForms = map drawSquare grid
+    gridForms = List.map drawSquare grid
     background =  Collage.move (offset, offset) <| Collage.filled black <| Collage.square (toFloat dim) 
   in Collage.group <| [background]++gridForms 
 
 drawMessageAndGrid : String -> Grid -> Form
-drawMessageAndGrid message grid = let messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| toText message )
+drawMessageAndGrid message grid = let messageForm = Collage.move (offset, offset) <| Collage.scale (1/40.0) <| Collage.toForm <| color grey (centered <| fromString message )
     in Collage.group [drawGrid grid, messageForm ]
 
 --Given a game state, convert it to a form to be drawn
@@ -284,11 +290,11 @@ arrows : Signal Cardinal.Direction
 arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
 input : Signal (Cardinal.Direction, Keyboard.KeyCode, Int)
-input = (,,) <~ arrows ~ Keyboard.lastPressed ~ (Random.range 1 (2^31) arrows)
+input = (,) <~ arrows ~ Keyboard.presses
 
 updateGameState : Input -> GameState -> GameState
-updateGameState (move, control, n) ((_, grid, history) as state) =
-  if | grid == [] -> (Playing, startGrid n, [])
+updateGameState (move, control) ((_, grid, history) as state) =
+  if | grid == [] -> (Playing, startGrid (generate Random.int 1 (2^31))), [])
      | control == 74 ->
           case history of 
             []    -> state
@@ -301,7 +307,7 @@ port seed : Int
 gameState : Signal GameState
 gameState = foldp updateGameState (startState seed) input
 
-rawFormList : Signal [Form]
+rawFormList : Signal (List Form)
 rawFormList = (\x -> [drawGame x]) <~ gameState
 
 scaleFor : Int -> Int -> Float
@@ -316,11 +322,11 @@ tform = makeTform <~ Window.dimensions
 gameForm : Signal Form
 gameForm = Collage.groupTransform <~ tform ~ rawFormList
 
-formList : Signal [Form]
+formList : Signal (List Form)
 formList = (\x -> [x]) <~ gameForm
 
-collageFunc : Signal ([Form] -> Element)
-collageFunc = (\(x,y) -> collage x y) <~ Window.dimensions
+collageFunc : Signal (List Form -> Element)
+collageFunc = (\(x,y) -> Collage.collage x y) <~ Window.dimensions
 
 --Wrap everything together: take the game state
 --Get the form to draw it, transform it into screen coordinates
