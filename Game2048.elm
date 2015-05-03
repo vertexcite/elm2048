@@ -340,6 +340,6 @@ collageFunc = (\(x,y) -> Collage.collage x y) <~ Window.dimensions
 --Then convert it to an Element and draw it to the screen
 main1 = collageFunc ~ formList
 
--- main2 = asText <~ gameState -- Useful for debugging
--- main = above <~ main1 ~ main2
+-- main2 = show <~ gameState -- Useful for debugging
+-- main = Graphics.Element.above <~ main1 ~ main2
 main = main1
