@@ -30,11 +30,11 @@ type PlayState = Playing | GameWon | GameLost
 
 type alias History = List Grid
 
-type alias GameState = (PlayState, Grid, History) 
+type alias GameState = (PlayState, Grid, History, Random.Seed) 
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-type alias Input = (Cardinal.Direction, Keyboard.KeyCode, Int)
+type alias Input = (Cardinal.Direction, Keyboard.KeyCode)
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -168,8 +168,8 @@ mergeGrid = applyInOrder mergeSquare (sortBy (\sq -> -sq.y))
 
 newTile : Grid -> Int -> Maybe GridSquare
 newTile g n = let coord = case blanks g of
-    [] -> Nothing
-    bs -> Just <| nth1 (n % length bs) bs
+      [] -> Nothing
+      bs -> Just <| nth1 (n % length bs) bs
   in case coord of 
     Nothing -> Nothing
     Just (x,y) -> Just {x=x, y=y, contents = 2 * (1 + (n % 2)) }
@@ -194,8 +194,8 @@ direction move =
 
 --Given the current state of the game, and a change in input from the user
 --Generate the new state of the game
-coreUpdate : Maybe Direction -> Int -> GameState -> GameState
-coreUpdate mdir n ((_, grid, hist) as gs) = 
+coreUpdate : Maybe Direction -> GameState -> GameState
+coreUpdate mdir ((_, grid, hist, seed) as gs) = 
   case mdir of 
     Nothing -> gs
     Just dir ->
@@ -203,11 +203,13 @@ coreUpdate mdir n ((_, grid, hist) as gs) =
         penUpdatedGrid = makeMove dir grid
       in
         if sameGrid penUpdatedGrid grid then gs
-        else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist)
-        else case (newTile penUpdatedGrid n) of
-          Just t -> let updatedGrid = t::penUpdatedGrid
-            in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist) else (GameLost, updatedGrid, grid :: hist)
-          Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist)
+          else if has2048 penUpdatedGrid && (not <| has2048 grid) then (GameWon, penUpdatedGrid, grid :: hist, seed)
+            else
+              let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
+              in case (newTile penUpdatedGrid n) of
+                Just t -> let updatedGrid = t::penUpdatedGrid
+                  in if canMove updatedGrid then (Playing, updatedGrid, grid :: hist, seed') else (GameLost, updatedGrid, grid :: hist, seed)
+                Nothing -> if canMove grid then gs else (GameLost, penUpdatedGrid, grid :: hist, seed)
 
 sameGrid : Grid -> Grid -> Bool
 sameGrid g1 g2 =
@@ -234,7 +236,9 @@ allTiles = product [1..dim] [1..dim]
 product : List a -> List b -> List (a,b)
 product a b = concatMap (\x -> List.map (\y -> (x,y)) b) a
 
-startGrid n = let 
+startGrid : Random.Seed -> Grid
+startGrid seed = let
+    (n, _) = Random.generate (Random.int 1 Random.maxInt) seed
     m1 = newTile [] n
     m2 = case m1 of 
       Just t1 -> newTile [t1] (n // 2)   
@@ -246,7 +250,8 @@ startGrid n = let
         Just t2 -> [t1, t2]
         _ -> [t1]
 
-startState n = (Playing, startGrid n, [])
+startState : Random.Seed -> GameState
+startState seed = (Playing, startGrid seed, [], seed)
 
 --Extracts the nth element of a list, starting at 0
 --Fails on empty lists
@@ -281,7 +286,7 @@ drawMessageAndGrid message grid = let messageForm = Collage.move (offset, offset
 
 --Given a game state, convert it to a form to be drawn
 drawGame : GameState -> Form
-drawGame (playState, grid, _) = case playState of
+drawGame (playState, grid, _, _) = case playState of
   Playing -> drawGrid grid
   GameLost -> drawMessageAndGrid "GameOver" grid
   GameWon -> drawMessageAndGrid "Congratulations!" grid
@@ -289,23 +294,25 @@ drawGame (playState, grid, _) = case playState of
 arrows : Signal Cardinal.Direction
 arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
-input : Signal (Cardinal.Direction, Keyboard.KeyCode, Int)
+input : Signal (Cardinal.Direction, Keyboard.KeyCode)
 input = (,) <~ arrows ~ Keyboard.presses
 
 updateGameState : Input -> GameState -> GameState
-updateGameState (move, control) ((_, grid, history) as state) =
-  if | grid == [] -> (Playing, startGrid (generate Random.int 1 (2^31))), [])
+updateGameState (move, control) ((_, grid, history, seed) as state) =
+  if | grid == [] ->
+        let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
+        in (Playing, startGrid seed, [], seed')
      | control == 74 ->
           case history of 
             []    -> state
-            g::gs -> (Playing, g, gs)
+            g::gs -> (Playing, g, gs, seed)
      | move == Cardinal.Nowhere -> state
-     | otherwise -> coreUpdate (direction move) n state
+     | otherwise -> coreUpdate (direction move) state
 
 port seed : Int
 
 gameState : Signal GameState
-gameState = foldp updateGameState (startState seed) input
+gameState = foldp updateGameState (startState (Random.initialSeed seed)) input
 
 rawFormList : Signal (List Form)
 rawFormList = (\x -> [drawGame x]) <~ gameState
