@@ -11,6 +11,21 @@ import Graphics.Collage exposing (Form)
 import Text exposing (fromString)
 import Signal exposing (..)
 
+---- Button Imports
+
+import Char
+import Color exposing (..)
+import Graphics.Element exposing (..)
+import Graphics.Input as Input
+import Result
+import String
+import Text
+import Window
+import Signal exposing ((<~), (~))
+
+
+---- Touch Imports
+
 import Touch.Cardinal as Cardinal
 import Touch.Gestures as Gestures
 
@@ -31,10 +46,6 @@ type PlayState = Playing | GameWon | GameLost
 type alias History = List Grid
 
 type alias GameState = (PlayState, Grid, History, Random.Seed) 
-
---Datatype wrapping all of our input signals together
---Has moves from the user, and a random ordering of squares
-type alias Input = (Cardinal.Direction, Keyboard.KeyCode)
 
 --Get the color for a particular number's square
 colorFor n = case n of
@@ -294,15 +305,19 @@ drawGame (playState, grid, _, _) = case playState of
 arrows : Signal Cardinal.Direction
 arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
-input : Signal (Cardinal.Direction, Keyboard.KeyCode)
-input = (,) <~ arrows ~ Keyboard.presses
+--Datatype wrapping all of our input signals together
+--Has moves from the user, and a random ordering of squares
+type alias Input = (Cardinal.Direction, Keyboard.KeyCode, Bool)
+
+input : Signal Input
+input = (,,) <~ arrows ~ Keyboard.presses ~ commands.signal
 
 updateGameState : Input -> GameState -> GameState
-updateGameState (move, control) ((_, grid, history, seed) as state) =
+updateGameState (move, control, undoPressed) ((_, grid, history, seed) as state) =
   if | grid == [] ->
         let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
         in (Playing, startGrid seed, [], seed')
-     | control == 74 ->
+     | undoPressed ->
           case history of 
             []    -> state
             g::gs -> (Playing, g, gs, seed)
@@ -342,4 +357,45 @@ main1 = collageFunc ~ formList
 
 -- main2 = show <~ gameState -- Useful for debugging
 -- main = Graphics.Element.above <~ main1 ~ main2
-main = main1
+main = Graphics.Element.above  (simpleButton "Undo") <~ main1
+
+
+
+
+
+------------- Button, based on calculator example from Elm examples.
+
+
+commands : Signal.Mailbox Bool
+commands = Signal.mailbox False
+
+buttonSize : number
+buttonSize = 120
+
+txt : Float -> Color -> String -> Element
+txt p clr string =
+    Text.fromString string
+      |> Text.color clr
+      |> Text.typeface ["Helvetica Neue","Sans-serif"]
+      |> Text.height (p * buttonSize)
+      |> leftAligned
+
+
+button : Color -> Color -> Int -> Int -> String -> Element
+button background foreground w h name =
+    let n = min w h
+        btn alpha =
+            layers [ container n n middle (txt 0.3 foreground name)
+                      |> container (w-1) (h-1) midLeft
+                      |> color background
+                      |> container w h bottomRight
+                      |> color black
+                   , color (rgba 0 0 0 alpha) (spacer w h)
+                   ]
+    in  Input.customButton (Signal.message commands.address True) (btn 0) (btn 0.05) (btn 0.1)
+
+simpleButton : String -> Element
+simpleButton name = button grey black buttonSize buttonSize name
+
+
+
