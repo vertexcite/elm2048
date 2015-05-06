@@ -307,27 +307,35 @@ arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-type alias Input = (Cardinal.Direction, Keyboard.KeyCode, Bool)
+type Input = Move Cardinal.Direction | ButtonAction Bool
 
-input : Signal Input
-input = (,,) <~ arrows ~ Keyboard.presses ~ commands.signal
+inputSignal : Signal Input
+inputSignal = merge (Move <~ arrows) (ButtonAction <~ commands.signal)
 
 updateGameState : Input -> GameState -> GameState
-updateGameState (move, control, undoPressed) ((_, grid, history, seed) as state) =
-  if | grid == [] ->
-        let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
-        in (Playing, startGrid seed, [], seed')
-     | undoPressed ->
-          case history of 
-            []    -> state
-            g::gs -> (Playing, g, gs, seed)
-     | move == Cardinal.Nowhere -> state
-     | otherwise -> coreUpdate (direction move) state
+updateGameState input ((_, grid, history, seed) as state) =
+  case input of
+    Move move ->
+      if | grid == [] ->
+            let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
+            in (Playing, startGrid seed, [], seed')
+         | move == Cardinal.Nowhere -> state
+         | otherwise -> coreUpdate (direction move) state
+   
+    ButtonAction undoPressed ->
+      if | grid == [] ->
+            let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
+            in (Playing, startGrid seed, [], seed')
+         | undoPressed ->
+              case history of 
+                []    -> state
+                g::gs -> (Playing, g, gs, seed)
+         | otherwise -> state
 
 port seed : Int
 
 gameState : Signal GameState
-gameState = foldp updateGameState (startState (Random.initialSeed seed)) input
+gameState = foldp updateGameState (startState (Random.initialSeed seed)) inputSignal
 
 rawFormList : Signal (List Form)
 rawFormList = (\x -> [drawGame x]) <~ gameState
