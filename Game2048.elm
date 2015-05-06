@@ -307,30 +307,24 @@ arrows = merge (Cardinal.fromArrows <~ Keyboard.arrows) Gestures.ray
 
 --Datatype wrapping all of our input signals together
 --Has moves from the user, and a random ordering of squares
-type Input = Move Cardinal.Direction | ButtonAction Bool
+type Input = Move Cardinal.Direction | ButtonAction ()
 
 inputSignal : Signal Input
 inputSignal = merge (Move <~ arrows) (ButtonAction <~ commands.signal)
 
 updateGameState : Input -> GameState -> GameState
 updateGameState input ((_, grid, history, seed) as state) =
-  case input of
-    Move move ->
-      if | grid == [] ->
-            let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
-            in (Playing, startGrid seed, [], seed')
-         | move == Cardinal.Nowhere -> state
-         | otherwise -> coreUpdate (direction move) state
-   
-    ButtonAction undoPressed ->
-      if | grid == [] ->
-            let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
-            in (Playing, startGrid seed, [], seed')
-         | undoPressed ->
-              case history of 
-                []    -> state
-                g::gs -> (Playing, g, gs, seed)
-         | otherwise -> state
+  if | grid == [] ->
+        let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
+        in (Playing, startGrid seed, [], seed')
+     | otherwise -> 
+    case input of
+      Move Cardinal.Nowhere -> state
+      Move move -> coreUpdate (direction move) state
+      ButtonAction _ ->
+        case history of 
+        []    -> state
+        g::gs -> (Playing, g, gs, seed)
 
 port seed : Int
 
@@ -374,8 +368,8 @@ main = Graphics.Element.above  (simpleButton "Undo") <~ main1
 ------------- Button, based on calculator example from Elm examples.
 
 
-commands : Signal.Mailbox Bool
-commands = Signal.mailbox False
+commands : Signal.Mailbox ()
+commands = Signal.mailbox ()
 
 buttonSize : number
 buttonSize = 120
@@ -400,7 +394,7 @@ button background foreground w h name =
                       |> color black
                    , color (rgba 0 0 0 alpha) (spacer w h)
                    ]
-    in  Input.customButton (Signal.message commands.address True) (btn 0) (btn 0.05) (btn 0.1)
+    in  Input.customButton (Signal.message commands.address ()) (btn 0) (btn 0.05) (btn 0.1)
 
 simpleButton : String -> Element
 simpleButton name = button grey black buttonSize buttonSize name
