@@ -10,18 +10,7 @@ import Graphics.Element exposing (show, color, centered, Element)
 import Graphics.Collage exposing (Form)
 import Text exposing (fromString)
 import Signal exposing (..)
-
----- Button Imports
-
-import Char
-import Color exposing (..)
-import Graphics.Element exposing (..)
-import Graphics.Input as Input
-import Result
-import String
-import Text
-import Window
-import Signal exposing ((<~), (~))
+import Graphics.Input exposing (..)
 
 
 ---- Touch Imports
@@ -314,17 +303,15 @@ inputSignal = merge (Move <~ arrows) (ButtonAction <~ commands.signal)
 
 updateGameState : Input -> GameState -> GameState
 updateGameState input ((_, grid, history, seed) as state) =
-  if | grid == [] ->
-        let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed
-        in (Playing, startGrid seed, [], seed')
-     | otherwise -> 
-    case input of
-      Move Cardinal.Nowhere -> state
-      Move move -> coreUpdate (direction move) state
-      ButtonAction _ ->
-        case history of 
-        []    -> state
-        g::gs -> (Playing, g, gs, seed)
+  if grid == [] then
+    let (n, seed') = Random.generate (Random.int 1 Random.maxInt) seed in (Playing, startGrid seed, [], seed')
+  else case input of
+         Move (Cardinal.Nowhere) -> state
+         Move move -> coreUpdate (direction move) state
+         ButtonAction _ ->
+           case history of 
+             []    -> state
+             g::gs -> (Playing, g, gs, seed)
 
 port seed : Int
 
@@ -359,11 +346,7 @@ main1 = collageFunc ~ formList
 
 -- main2 = show <~ gameState -- Useful for debugging
 -- main = Graphics.Element.above <~ main1 ~ main2
-main = Graphics.Element.above  (simpleButton "Undo") <~ main1
-
-
-
-
+main = Graphics.Element.above undoButton <~ main1
 
 ------------- Button, based on calculator example from Elm examples.
 
@@ -374,30 +357,4 @@ commands = Signal.mailbox ()
 buttonSize : number
 buttonSize = 120
 
-txt : Float -> Color -> String -> Element
-txt p clr string =
-    Text.fromString string
-      |> Text.color clr
-      |> Text.typeface ["Helvetica Neue","Sans-serif"]
-      |> Text.height (p * buttonSize)
-      |> leftAligned
-
-
-button : Color -> Color -> Int -> Int -> String -> Element
-button background foreground w h name =
-    let n = min w h
-        btn alpha =
-            layers [ container n n middle (txt 0.3 foreground name)
-                      |> container (w-1) (h-1) midLeft
-                      |> color background
-                      |> container w h bottomRight
-                      |> color black
-                   , color (rgba 0 0 0 alpha) (spacer w h)
-                   ]
-    in  Input.customButton (Signal.message commands.address ()) (btn 0) (btn 0.05) (btn 0.1)
-
-simpleButton : String -> Element
-simpleButton name = button grey black buttonSize buttonSize name
-
-
-
+undoButton = button (Signal.message commands.address ()) "Undo"
