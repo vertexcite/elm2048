@@ -1,0 +1,1295 @@
+<!DOCTYPE HTML>
+<html><head><meta charset="UTF-8"><title>demo</title><script type="text/javascript" src="elm-runtime.js"></script><script type="text/javascript">Elm.Main = Elm.Main || {};
+Elm.Main.make = function (_elm) {
+   "use strict";
+   _elm.Main = _elm.Main || {};
+   if (_elm.Main.values)
+   return _elm.Main.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Main";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var Keyboard = Elm.Keyboard.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Random = Elm.Random.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Elm.Touch.make(_elm);
+   var Touch = Touch || {};
+   Touch.Cardinal = Elm.Touch.Cardinal.make(_elm);
+   var Touch = Touch || {};
+   Touch.Gestures = Elm.Touch.Gestures.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var Window = Elm.Window.make(_elm);
+   var _op = {};
+   var center = F2(function (_v0,
+   e) {
+      return function () {
+         switch (_v0.ctor)
+         {case "_Tuple2":
+            return A4(Graphics.Element.container,
+              _v0._0,
+              _v0._1,
+              Graphics.Element.middle,
+              e);}
+         _E.Case($moduleName,
+         "on line 143, column 18 to 40");
+      }();
+   });
+   var groupsOf = F2(function (n,
+   xs) {
+      return function () {
+         switch (xs.ctor)
+         {case "[]":
+            return _L.fromArray([]);}
+         return {ctor: "::"
+                ,_0: A2(List.take,n,xs)
+                ,_1: A2(groupsOf,
+                n,
+                A2(List.drop,n,xs))};
+      }();
+   });
+   _op["!!"] = F2(function (xs,n) {
+      return function () {
+         var _v5 = {ctor: "_Tuple2"
+                   ,_0: xs
+                   ,_1: n};
+         switch (_v5.ctor)
+         {case "_Tuple2":
+            switch (_v5._0.ctor)
+              {case "::": switch (_v5._1)
+                   {case 0:
+                      return Maybe.Just(_v5._0._0);}
+                   return A2(_op["!!"],
+                   _v5._0._1,
+                   _v5._1 - 1);
+                 case "[]":
+                 return Maybe.Nothing;}
+              break;}
+         _E.Case($moduleName,
+         "between lines 29 and 32");
+      }();
+   });
+   var transpose = function (xs) {
+      return function () {
+         switch (xs.ctor)
+         {case "::": switch (xs._0.ctor)
+              {case "[]":
+                 return _L.fromArray([]);}
+              break;}
+         return {ctor: "::"
+                ,_0: A2(List.map,List.head,xs)
+                ,_1: transpose(A2(List.map,
+                List.tail,
+                xs))};
+      }();
+   };
+   var dim = 4;
+   var randNthPos = A3(Random.range,
+   1,
+   Math.pow(dim,2),
+   Keyboard.arrows);
+   var input = function () {
+      var dir = A2(Signal.merge,
+      A2(Signal._op["<~"],
+      Touch.Cardinal.fromArrows,
+      Keyboard.arrows),
+      Touch.Gestures.ray);
+      return A2(Signal._op["~"],
+      A2(Signal._op["<~"],
+      F2(function (v0,v1) {
+         return {ctor: "_Tuple2"
+                ,_0: v0
+                ,_1: v1};
+      }),
+      randNthPos),
+      dir);
+   }();
+   var Direction = F2(function (a,
+   b) {
+      return {_: {},x: a,y: b};
+   });
+   var Block = function (a) {
+      return {ctor: "Block",_0: a};
+   };
+   var board = List.repeat(dim)(A2(List.repeat,
+   dim,
+   Block(0)));
+   var blanks = function (g) {
+      return function () {
+         switch (g.ctor)
+         {case "::": switch (g._0.ctor)
+              {case "::":
+                 switch (g._0._0.ctor)
+                   {case "Block":
+                      switch (g._0._0._0)
+                        {case 0:
+                           return 1 + blanks({ctor: "::"
+                                             ,_0: g._0._1
+                                             ,_1: g._1});}
+                        break;}
+                   return blanks({ctor: "::"
+                                 ,_0: g._0._1
+                                 ,_1: g._1});
+                 case "[]": return blanks(g._1);}
+              break;
+            case "[]": return 0;}
+         _E.Case($moduleName,
+         "between lines 49 and 53");
+      }();
+   };
+   var newBlock = F3(function (v,
+   n,
+   g) {
+      return function () {
+         var f = F2(function (n,bs) {
+            return function () {
+               switch (bs.ctor)
+               {case "::": switch (bs._0.ctor)
+                    {case "Block": switch (bs._0._0)
+                         {case 0: return _U.eq(n,
+                              0) ? {ctor: "::"
+                                   ,_0: Block(1 + v)
+                                   ,_1: bs._1} : {ctor: "::"
+                                                 ,_0: Block(0)
+                                                 ,_1: A2(f,n - 1,bs._1)};}
+                         break;}
+                    return {ctor: "::"
+                           ,_0: bs._0
+                           ,_1: A2(f,n,bs._1)};}
+               _E.Case($moduleName,
+               "between lines 59 and 62");
+            }();
+         });
+         return groupsOf(dim)(f(n)(List.concat(g)));
+      }();
+   });
+   var next = function (_v23) {
+      return function () {
+         switch (_v23.ctor)
+         {case "Block":
+            return Block(_v23._0 + 1);}
+         _E.Case($moduleName,
+         "on line 65, column 18 to 32");
+      }();
+   };
+   var reduce = function (row) {
+      return function () {
+         var f = F2(function (b,r) {
+            return function () {
+               switch (r.ctor)
+               {case "::": return _U.eq(b,
+                    r._0) ? {ctor: "::"
+                            ,_0: next(b)
+                            ,_1: r._1} : {ctor: "::"
+                                         ,_0: b
+                                         ,_1: {ctor: "::"
+                                              ,_0: r._0
+                                              ,_1: r._1}};
+                  case "[]":
+                  return _L.fromArray([b]);}
+               _E.Case($moduleName,
+               "between lines 70 and 73");
+            }();
+         });
+         var rd = A2(List.foldr,
+         f,
+         _L.fromArray([]))(A2(List.filter,
+         function (b) {
+            return !_U.eq(b,Block(0));
+         },
+         row));
+         var zs = List.repeat(dim - List.length(rd))(Block(0));
+         return _L.append(zs,rd);
+      }();
+   };
+   var right = List.map(reduce);
+   var down = function ($) {
+      return transpose(right(transpose($)));
+   };
+   var left = List.map(function ($) {
+      return List.reverse(reduce(List.reverse($)));
+   });
+   var up = function ($) {
+      return transpose(left(transpose($)));
+   };
+   var shiftBy = function (c) {
+      return _U.eq(c,
+      Touch.Cardinal.right) ? Maybe.Just(right) : _U.eq(c,
+      Touch.Cardinal.left) ? Maybe.Just(left) : _U.eq(c,
+      Touch.Cardinal.up) ? Maybe.Just(up) : _U.eq(c,
+      Touch.Cardinal.down) ? Maybe.Just(down) : Maybe.Nothing;
+   };
+   var shift = F2(function (_v29,
+   g) {
+      return function () {
+         switch (_v29.ctor)
+         {case "_Tuple2":
+            return A2(Maybe.maybe,
+              g,
+              function (f$) {
+                 return function () {
+                    var g$ = f$(g);
+                    var bs = blanks(g$);
+                    return _U.eq(bs,
+                    0) ? g$ : !_U.eq(bs,
+                    Math.pow(dim,2)) && _U.eq(g,
+                    g$) ? g$ : A3(newBlock,
+                    A2(Basics.mod,_v29._0,2),
+                    A2(Basics.mod,_v29._0,bs),
+                    g$);
+                 }();
+              })(shiftBy(_v29._1));}
+         _E.Case($moduleName,
+         "between lines 90 and 95");
+      }();
+   });
+   var colour = function (_v33) {
+      return function () {
+         switch (_v33.ctor)
+         {case "Block":
+            return function () {
+                 var cs = _L.fromArray([A3(Color.rgb,
+                                       238,
+                                       238,
+                                       218)
+                                       ,A3(Color.rgb,237,224,200)
+                                       ,A3(Color.rgb,242,177,121)
+                                       ,A3(Color.rgb,245,149,99)
+                                       ,A3(Color.rgb,246,130,96)
+                                       ,A3(Color.rgb,246,94,59)
+                                       ,A3(Color.rgb,237,207,114)
+                                       ,A3(Color.rgb,237,204,97)
+                                       ,A3(Color.rgb,237,201,82)
+                                       ,A3(Color.rgb,237,197,63)
+                                       ,A3(Color.rgb,237,194,46)]);
+                 return A2(Maybe.maybe,
+                 Color.gray,
+                 Basics.id)(A2(_op["!!"],
+                 cs,
+                 A2(Basics.mod,
+                 _v33._0,
+                 List.length(cs))));
+              }();}
+         _E.Case($moduleName,
+         "between lines 126 and 139");
+      }();
+   };
+   var asSquare = F2(function (_v36,
+   _v37) {
+      return function () {
+         switch (_v37.ctor)
+         {case "Block":
+            return function () {
+                 switch (_v36.ctor)
+                 {case "_Tuple2":
+                    return function () {
+                         var te = _U.eq(_v37._0,
+                         0) ? Text.plainText("") : Text.asText(Math.pow(2,
+                         _v37._0));
+                         var si = A2(Basics.min,
+                         _v36._0,
+                         _v36._1) / 5 | 0;
+                         var sh = Graphics.Collage.square(Basics.toFloat(si));
+                         var f = Basics.round(1.1 * Basics.toFloat(si));
+                         var co = colour(Block(_v37._0));
+                         return A3(Graphics.Collage.collage,
+                         f,
+                         f,
+                         _L.fromArray([A2(Graphics.Collage.filled,
+                                      co,
+                                      sh)
+                                      ,Graphics.Collage.scale(2)(Graphics.Collage.toForm(te))]));
+                      }();}
+                 _E.Case($moduleName,
+                 "between lines 116 and 121");
+              }();}
+         _E.Case($moduleName,
+         "between lines 116 and 121");
+      }();
+   });
+   var render = F4(function (d,
+   _v43,
+   g,
+   ts) {
+      return function () {
+         switch (_v43.ctor)
+         {case "_Tuple2":
+            return function () {
+                 var s = (A2(Basics.min,
+                 _v43._0,
+                 _v43._1) / 10 | 0) * dim * 2;
+                 var pd = function (xs) {
+                    return {ctor: "::"
+                           ,_0: A4(Graphics.Element.container,
+                           s,
+                           25,
+                           Graphics.Element.middle,
+                           Text.asText(d))
+                           ,_1: xs};
+                 };
+                 var f = function ($) {
+                    return Graphics.Element.flow(Graphics.Element.right)(List.map(asSquare({ctor: "_Tuple2"
+                                                                                           ,_0: _v43._0
+                                                                                           ,_1: _v43._1}))($));
+                 };
+                 return center({ctor: "_Tuple2"
+                               ,_0: _v43._0
+                               ,_1: _v43._1})(A3(Graphics.Element.container,
+                 s,
+                 s + 50,
+                 Graphics.Element.middle)(Graphics.Element.flow(Graphics.Element.down)(pd(List.map(f)(g)))));
+              }();}
+         _E.Case($moduleName,
+         "between lines 108 and 111");
+      }();
+   });
+   var main = A2(Signal._op["~"],
+   A2(Signal._op["~"],
+   A2(Signal._op["~"],
+   A2(Signal._op["<~"],
+   render,
+   A2(Signal._op["<~"],
+   Basics.snd,
+   input)),
+   Window.dimensions),
+   A3(Signal.foldp,
+   shift,
+   board,
+   input)),
+   Touch.touches);
+   _elm.Main.values = {_op: _op
+                      ,dim: dim
+                      ,transpose: transpose
+                      ,groupsOf: groupsOf
+                      ,board: board
+                      ,blanks: blanks
+                      ,newBlock: newBlock
+                      ,next: next
+                      ,reduce: reduce
+                      ,right: right
+                      ,left: left
+                      ,up: up
+                      ,down: down
+                      ,shift: shift
+                      ,shiftBy: shiftBy
+                      ,render: render
+                      ,asSquare: asSquare
+                      ,colour: colour
+                      ,center: center
+                      ,randNthPos: randNthPos
+                      ,input: input
+                      ,main: main
+                      ,Block: Block
+                      ,Direction: Direction};
+   return _elm.Main.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Gestures = Elm.Touch.Gestures || {};
+Elm.Touch.Gestures.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Gestures = _elm.Touch.Gestures || {};
+   if (_elm.Touch.Gestures.values)
+   return _elm.Touch.Gestures.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Gestures";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Elm.Touch.make(_elm);
+   var Touch = Touch || {};
+   Touch.Cardinal = Elm.Touch.Cardinal.make(_elm);
+   var Touch = Touch || {};
+   Touch.Signal = Touch.Signal || {};
+   Touch.Signal.Derived = Elm.Touch.Signal.Derived.make(_elm);
+   var Touch = Touch || {};
+   Touch.Swipe = Elm.Touch.Swipe.make(_elm);
+   var Touch = Touch || {};
+   Touch.Tap = Elm.Touch.Tap.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var Touch = Touch || {};
+   Touch.Util = Elm.Touch.Util.make(_elm);
+   var _op = {};
+   var relativeImp = F2(function (_v0,
+   _v1) {
+      return function () {
+         switch (_v1.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v0.ctor)
+                 {case "_Tuple2":
+                    return Touch.Cardinal.vector2ToCardinal(Touch.Util.lineSegToVector2({ctor: "_Tuple2"
+                                                                                        ,_0: {ctor: "_Tuple2"
+                                                                                             ,_0: _v0._0
+                                                                                             ,_1: _v0._1}
+                                                                                        ,_1: {ctor: "_Tuple2"
+                                                                                             ,_0: _v1._0
+                                                                                             ,_1: _v1._1}}));}
+                 _E.Case($moduleName,
+                 "on line 90, column 30 to 97");
+              }();}
+         _E.Case($moduleName,
+         "on line 90, column 30 to 97");
+      }();
+   });
+   var relativeWithin = F2(function (dis,
+   _v8) {
+      return function () {
+         switch (_v8.ctor)
+         {case "_Tuple2":
+            return function () {
+                 var cardinal = function (_v12) {
+                    return function () {
+                       return A2(relativeImp,
+                       _v8,
+                       {ctor: "_Tuple2"
+                       ,_0: _v12.x
+                       ,_1: _v12.y});
+                    }();
+                 };
+                 var ok = function (_v14) {
+                    return function () {
+                       return _U.cmp(A2(Touch.Util.distance,
+                       _v8,
+                       {ctor: "_Tuple2"
+                       ,_0: _v14.x
+                       ,_1: _v14.y}),
+                       dis) < 1;
+                    }();
+                 };
+                 return A2(Signal._op["<~"],
+                 cardinal,
+                 A3(Signal.keepIf,
+                 ok,
+                 {_: {},x: 0,y: 0},
+                 Touch.taps));
+              }();}
+         _E.Case($moduleName,
+         "between lines 100 and 102");
+      }();
+   });
+   var relative = function (fixed) {
+      return A2(Signal._op["<~"],
+      function ($) {
+         return relativeImp(fixed)(function (_v16) {
+            return function () {
+               return {ctor: "_Tuple2"
+                      ,_0: _v16.x
+                      ,_1: _v16.y};
+            }();
+         }($));
+      },
+      Touch.taps);
+   };
+   var tap = A2(Signal._op["<~"],
+   function (_v18) {
+      return function () {
+         return Touch.Tap.oneFinger(_L.fromArray([{ctor: "_Tuple2"
+                                                  ,_0: _v18.x
+                                                  ,_1: _v18.y}]));
+      }();
+   },
+   Touch.taps);
+   var NotDragging = {ctor: "NotDragging"};
+   var DragJustFinished = function (a) {
+      return {ctor: "DragJustFinished"
+             ,_0: a};
+   };
+   var f = function (_v20) {
+      return function () {
+         switch (_v20.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v20._0.ctor)
+                 {case "DragJustFinished":
+                    return Touch.Cardinal.fromSwipe(_v20._0._0);}
+                 return _L.fromArray([Touch.Cardinal.Nowhere]);
+              }();}
+         _E.Case($moduleName,
+         "between lines 71 and 77");
+      }();
+   };
+   var TouchJustFinished = {ctor: "TouchJustFinished"};
+   var TouchJustStarted = {ctor: "TouchJustStarted"};
+   var Dragging = {ctor: "Dragging"};
+   var processTouchDragging = F2(function (ts,
+   _v26) {
+      return function () {
+         switch (_v26.ctor)
+         {case "_Tuple2":
+            return function () {
+                 var touching = _U.cmp(List.length(ts),
+                 0) > 0;
+                 return touching ? function () {
+                    switch (_v26._0.ctor)
+                    {case "DragJustFinished":
+                       return {ctor: "_Tuple2"
+                              ,_0: TouchJustStarted
+                              ,_1: ts};
+                       case "Dragging":
+                       return {ctor: "_Tuple2"
+                              ,_0: Dragging
+                              ,_1: ts};
+                       case "NotDragging":
+                       return {ctor: "_Tuple2"
+                              ,_0: TouchJustStarted
+                              ,_1: ts};
+                       case "TouchJustFinished":
+                       return {ctor: "_Tuple2"
+                              ,_0: TouchJustStarted
+                              ,_1: ts};
+                       case "TouchJustStarted":
+                       return {ctor: "_Tuple2"
+                              ,_0: Dragging
+                              ,_1: ts};}
+                    _E.Case($moduleName,
+                    "between lines 46 and 52");
+                 }() : function () {
+                    switch (_v26._0.ctor)
+                    {case "DragJustFinished":
+                       return {ctor: "_Tuple2"
+                              ,_0: NotDragging
+                              ,_1: _L.fromArray([])};
+                       case "Dragging":
+                       return {ctor: "_Tuple2"
+                              ,_0: DragJustFinished(Touch.Swipe.fromTouches(_v26._1))
+                              ,_1: _L.fromArray([])};
+                       case "NotDragging":
+                       return {ctor: "_Tuple2"
+                              ,_0: NotDragging
+                              ,_1: _L.fromArray([])};
+                       case "TouchJustFinished":
+                       return {ctor: "_Tuple2"
+                              ,_0: NotDragging
+                              ,_1: _L.fromArray([])};
+                       case "TouchJustStarted":
+                       return {ctor: "_Tuple2"
+                              ,_0: TouchJustFinished
+                              ,_1: _L.fromArray([])};}
+                    _E.Case($moduleName,
+                    "between lines 53 and 59");
+                 }();
+              }();}
+         _E.Case($moduleName,
+         "between lines 42 and 59");
+      }();
+   });
+   var touchDragState = A3(Signal.foldp,
+   processTouchDragging,
+   {ctor: "_Tuple2"
+   ,_0: NotDragging
+   ,_1: _L.fromArray([])},
+   Touch.touches);
+   var ray = A2(Signal._op["<~"],
+   function ($) {
+      return List.head(f($));
+   },
+   touchDragState);
+   var swipePred = A2(Signal._op["<~"],
+   function (ts) {
+      return _U.eq(List.length(ts),
+      0);
+   },
+   Touch.touches);
+   var swipe = A2(Signal._op["<~"],
+   Touch.Swipe.fromTouches,
+   A3(Signal.keepWhen,
+   swipePred,
+   _L.fromArray([]),
+   Touch.touches));
+   var slide = function () {
+      var ok = function (ts) {
+         return Basics.not(List.isEmpty(ts)) && Basics.not(Touch.Util.isTap(List.head(ts)));
+      };
+      return A2(Signal._op["<~"],
+      Touch.Swipe.fromTouches,
+      A3(Signal.keepIf,
+      ok,
+      _L.fromArray([]),
+      Touch.touches));
+   }();
+   _elm.Touch.Gestures.values = {_op: _op
+                                ,slide: slide
+                                ,swipePred: swipePred
+                                ,swipe: swipe
+                                ,processTouchDragging: processTouchDragging
+                                ,touchDragState: touchDragState
+                                ,ray: ray
+                                ,f: f
+                                ,tap: tap
+                                ,relative: relative
+                                ,relativeImp: relativeImp
+                                ,relativeWithin: relativeWithin
+                                ,Dragging: Dragging
+                                ,TouchJustStarted: TouchJustStarted
+                                ,TouchJustFinished: TouchJustFinished
+                                ,DragJustFinished: DragJustFinished
+                                ,NotDragging: NotDragging};
+   return _elm.Touch.Gestures.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Cardinal = Elm.Touch.Cardinal || {};
+Elm.Touch.Cardinal.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Cardinal = _elm.Touch.Cardinal || {};
+   if (_elm.Touch.Cardinal.values)
+   return _elm.Touch.Cardinal.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Cardinal";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var Touch = Touch || {};
+   Touch.Util = Elm.Touch.Util.make(_elm);
+   var _op = {};
+   var UpLeft = {ctor: "UpLeft"};
+   var upLeft = UpLeft;
+   var Left = {ctor: "Left"};
+   var left = Left;
+   var DownLeft = {ctor: "DownLeft"};
+   var downLeft = DownLeft;
+   var Down = {ctor: "Down"};
+   var down = Down;
+   var DownRight = {ctor: "DownRight"};
+   var downRight = DownRight;
+   var Right = {ctor: "Right"};
+   var right = Right;
+   var UpRight = {ctor: "UpRight"};
+   var upRight = UpRight;
+   var Up = {ctor: "Up"};
+   var up = Up;
+   var fromAngle = function (a) {
+      return function () {
+         var bw = F3(function (a,
+         b1,
+         b2) {
+            return _U.cmp(a,
+            b1) > -1 && _U.cmp(b2,a) > 0;
+         });
+         return A3(bw,
+         a,
+         (0 - Basics.pi) / 8,
+         Basics.pi / 8) ? right : A3(bw,
+         a,
+         Basics.pi / 8,
+         3 * Basics.pi / 8) ? upRight : A3(bw,
+         a,
+         3 * Basics.pi / 8,
+         5 * Basics.pi / 8) ? up : A3(bw,
+         a,
+         5 * Basics.pi / 8,
+         7 * Basics.pi / 8) ? upLeft : A3(bw,
+         a,
+         -3 * Basics.pi / 8,
+         (0 - Basics.pi) / 8) ? downRight : A3(bw,
+         a,
+         -5 * Basics.pi / 8,
+         -3 * Basics.pi / 8) ? down : A3(bw,
+         a,
+         -7 * Basics.pi / 8,
+         -5 * Basics.pi / 8) ? downLeft : left;
+      }();
+   };
+   var fromSwipe = function (_v0) {
+      return function () {
+         switch (_v0.ctor)
+         {case "Swipe":
+            return A2(List.map,
+              function ($) {
+                 return fromAngle(Touch.Util.lineSegAngle($));
+              },
+              _v0._1);}
+         _E.Case($moduleName,
+         "on line 29, column 32 to 71");
+      }();
+   };
+   var vector2ToCardinal = function (_v4) {
+      return function () {
+         switch (_v4.ctor)
+         {case "_Tuple2":
+            return fromAngle(A2(Basics.atan2,
+              _v4._0,
+              _v4._1));}
+         _E.Case($moduleName,
+         "on line 32, column 27 to 49");
+      }();
+   };
+   var Nowhere = {ctor: "Nowhere"};
+   var nowhere = Nowhere;
+   var fromArrows = function (_v8) {
+      return function () {
+         return _U.eq(_v8.x,
+         1) && _U.eq(_v8.y,
+         0) ? right : _U.eq(_v8.x,
+         1) && _U.eq(_v8.y,
+         1) ? upRight : _U.eq(_v8.x,
+         0) && _U.eq(_v8.y,
+         1) ? up : _U.eq(_v8.x,
+         -1) && _U.eq(_v8.y,
+         1) ? upLeft : _U.eq(_v8.x,
+         1) && _U.eq(_v8.y,
+         -1) ? downRight : _U.eq(_v8.x,
+         0) && _U.eq(_v8.y,
+         -1) ? down : _U.eq(_v8.x,
+         -1) && _U.eq(_v8.y,
+         -1) ? downLeft : _U.eq(_v8.x,
+         -1) && _U.eq(_v8.y,
+         0) ? left : nowhere;
+      }();
+   };
+   _elm.Touch.Cardinal.values = {_op: _op
+                                ,fromSwipe: fromSwipe
+                                ,vector2ToCardinal: vector2ToCardinal
+                                ,fromAngle: fromAngle
+                                ,fromArrows: fromArrows
+                                ,nowhere: nowhere
+                                ,up: up
+                                ,upRight: upRight
+                                ,right: right
+                                ,downRight: downRight
+                                ,down: down
+                                ,downLeft: downLeft
+                                ,left: left
+                                ,upLeft: upLeft
+                                ,Nowhere: Nowhere
+                                ,Up: Up
+                                ,UpRight: UpRight
+                                ,Right: Right
+                                ,DownRight: DownRight
+                                ,Down: Down
+                                ,DownLeft: DownLeft
+                                ,Left: Left
+                                ,UpLeft: UpLeft};
+   return _elm.Touch.Cardinal.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Signal = Elm.Touch.Signal || {};
+Elm.Touch.Signal.Derived = Elm.Touch.Signal.Derived || {};
+Elm.Touch.Signal.Derived.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Signal = _elm.Touch.Signal || {};
+   _elm.Touch.Signal.Derived = _elm.Touch.Signal.Derived || {};
+   if (_elm.Touch.Signal.Derived.values)
+   return _elm.Touch.Signal.Derived.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Signal.Derived";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var _op = {};
+   var onceWhen = F3(function (dflt,
+   pred,
+   s) {
+      return function () {
+         var zero = {ctor: "_Tuple2"
+                    ,_0: {ctor: "_Tuple2"
+                         ,_0: true
+                         ,_1: true}
+                    ,_1: Maybe.Nothing};
+         var switched = function (_v0) {
+            return function () {
+               switch (_v0.ctor)
+               {case "_Tuple2":
+                  switch (_v0._0.ctor)
+                    {case "_Tuple2":
+                       return _v0._0._0 && Basics.not(_v0._0._1);}
+                    break;}
+               _E.Case($moduleName,
+               "on line 58, column 32 to 44");
+            }();
+         };
+         var f = F2(function (_v6,_v7) {
+            return function () {
+               switch (_v7.ctor)
+               {case "_Tuple2":
+                  switch (_v7._0.ctor)
+                    {case "_Tuple2":
+                       return function () {
+                            switch (_v6.ctor)
+                            {case "_Tuple2":
+                               return {ctor: "_Tuple2"
+                                      ,_0: {ctor: "_Tuple2"
+                                           ,_0: _v6._0
+                                           ,_1: _v7._0._0}
+                                      ,_1: Maybe.Just(_v6._1)};}
+                            _E.Case($moduleName,
+                            "on line 57, column 36 to 55");
+                         }();}
+                    break;}
+               _E.Case($moduleName,
+               "on line 57, column 36 to 55");
+            }();
+         });
+         var sig = A2(Signal._op["~"],
+         A2(Signal._op["<~"],
+         F2(function (v0,v1) {
+            return {ctor: "_Tuple2"
+                   ,_0: v0
+                   ,_1: v1};
+         }),
+         pred),
+         s);
+         return A2(Signal._op["<~"],
+         function ($) {
+            return A2(Maybe.maybe,
+            dflt,
+            Basics.id)(Basics.snd($));
+         },
+         A3(Signal.keepIf,
+         switched,
+         zero,
+         A3(Signal.foldp,f,zero,sig)));
+      }();
+   });
+   var dumpAfter = function (n) {
+      return A2(Signal.foldp,
+      F2(function (x,acc) {
+         return _U.cmp(List.length(acc),
+         n) < 0 ? {ctor: "::"
+                  ,_0: x
+                  ,_1: acc} : _L.fromArray([x]);
+      }),
+      _L.fromArray([]));
+   };
+   var catchN = F2(function (n,s) {
+      return A2(Signal.keepIf,
+      function (xs) {
+         return _U.eq(List.length(xs),
+         n);
+      },
+      _L.fromArray([]))(A2(dumpAfter,
+      n,
+      s));
+   });
+   var catchPair = F2(function (dflt,
+   s) {
+      return function () {
+         var toPair = function (pair) {
+            return function () {
+               switch (pair.ctor)
+               {case "::":
+                  switch (pair._1.ctor)
+                    {case "::":
+                       switch (pair._1._1.ctor)
+                         {case "[]":
+                            return {ctor: "_Tuple2"
+                                   ,_0: pair._1._0
+                                   ,_1: pair._0};}
+                         break;}
+                    break;}
+               return dflt;
+            }();
+         };
+         return A2(Signal._op["<~"],
+         toPair,
+         A2(catchN,2,s));
+      }();
+   });
+   var collectN = function (n) {
+      return A2(Signal.foldp,
+      F2(function (x,acc) {
+         return List.take(n)({ctor: "::"
+                             ,_0: x
+                             ,_1: acc});
+      }),
+      _L.fromArray([]));
+   };
+   var collect = A2(Signal.foldp,
+   F2(function (x,y) {
+      return {ctor: "::"
+             ,_0: x
+             ,_1: y};
+   }),
+   _L.fromArray([]));
+   _elm.Touch.Signal.Derived.values = {_op: _op
+                                      ,collect: collect
+                                      ,collectN: collectN
+                                      ,dumpAfter: dumpAfter
+                                      ,catchPair: catchPair
+                                      ,catchN: catchN
+                                      ,onceWhen: onceWhen};
+   return _elm.Touch.Signal.Derived.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Swipe = Elm.Touch.Swipe || {};
+Elm.Touch.Swipe.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Swipe = _elm.Touch.Swipe || {};
+   if (_elm.Touch.Swipe.values)
+   return _elm.Touch.Swipe.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Swipe";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Elm.Touch.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var Touch = Touch || {};
+   Touch.Util = Elm.Touch.Util.make(_elm);
+   var _op = {};
+   var threeFinger = Touch.Types.Swipe(Touch.Types.ThreeFinger);
+   var twoFinger = Touch.Types.Swipe(Touch.Types.TwoFinger);
+   var oneFinger = Touch.Types.Swipe(Touch.Types.OneFinger);
+   var fromTouches = function (ts) {
+      return function () {
+         var dflt = _L.fromArray([{_: {}
+                                  ,id: 0
+                                  ,t0: 0
+                                  ,x: 0
+                                  ,x0: 0
+                                  ,y: 0
+                                  ,y0: 0}]);
+         var a = function (t) {
+            return {ctor: "_Tuple2"
+                   ,_0: {ctor: "_Tuple2"
+                        ,_0: t.x0
+                        ,_1: t.y0}
+                   ,_1: {ctor: "_Tuple2"
+                        ,_0: t.x
+                        ,_1: t.y}};
+         };
+         return function () {
+            var _v0 = List.length(ts);
+            switch (_v0)
+            {case 0:
+               return oneFinger(A2(List.map,
+                 a,
+                 dflt));
+               case 1:
+               return oneFinger(A2(List.map,
+                 a,
+                 ts));
+               case 2:
+               return twoFinger(A2(List.map,
+                 a,
+                 ts));}
+            return threeFinger(List.take(3)(A2(List.map,
+            a,
+            ts)));
+         }();
+      }();
+   };
+   _elm.Touch.Swipe.values = {_op: _op
+                             ,oneFinger: oneFinger
+                             ,twoFinger: twoFinger
+                             ,threeFinger: threeFinger
+                             ,fromTouches: fromTouches};
+   return _elm.Touch.Swipe.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Tap = Elm.Touch.Tap || {};
+Elm.Touch.Tap.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Tap = _elm.Touch.Tap || {};
+   if (_elm.Touch.Tap.values)
+   return _elm.Touch.Tap.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Tap";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var _op = {};
+   var threeFinger = Touch.Types.Tap(Touch.Types.ThreeFinger);
+   var twoFinger = Touch.Types.Tap(Touch.Types.TwoFinger);
+   var oneFinger = Touch.Types.Tap(Touch.Types.OneFinger);
+   var fromPrimTap = function (_v0) {
+      return function () {
+         return oneFinger(_L.fromArray([{ctor: "_Tuple2"
+                                        ,_0: _v0.x
+                                        ,_1: _v0.y}]));
+      }();
+   };
+   _elm.Touch.Tap.values = {_op: _op
+                           ,oneFinger: oneFinger
+                           ,twoFinger: twoFinger
+                           ,threeFinger: threeFinger
+                           ,fromPrimTap: fromPrimTap};
+   return _elm.Touch.Tap.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Util = Elm.Touch.Util || {};
+Elm.Touch.Util.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Util = _elm.Touch.Util || {};
+   if (_elm.Touch.Util.values)
+   return _elm.Touch.Util.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Util";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var Touch = Elm.Touch.make(_elm);
+   var Touch = Touch || {};
+   Touch.Types = Elm.Touch.Types.make(_elm);
+   var _op = {};
+   var tupFromRec = function (_v0) {
+      return function () {
+         return {ctor: "_Tuple2"
+                ,_0: _v0.x
+                ,_1: _v0.y};
+      }();
+   };
+   var isTap = function (_v2) {
+      return function () {
+         return _U.eq(_v2.x0,
+         _v2.x) && _U.eq(_v2.y0,_v2.y);
+      }();
+   };
+   var dot = F2(function (_v4,
+   _v5) {
+      return function () {
+         switch (_v5.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v4.ctor)
+                 {case "_Tuple2":
+                    return _v4._0 * _v5._0 + _v4._1 + _v5._1;}
+                 _E.Case($moduleName,
+                 "on line 51, column 23 to 40");
+              }();}
+         _E.Case($moduleName,
+         "on line 51, column 23 to 40");
+      }();
+   });
+   var lineSegToVector2 = function (_v12) {
+      return function () {
+         switch (_v12.ctor)
+         {case "_Tuple2":
+            switch (_v12._0.ctor)
+              {case "_Tuple2":
+                 switch (_v12._1.ctor)
+                   {case "_Tuple2":
+                      return {ctor: "_Tuple2"
+                             ,_0: Basics.toFloat(_v12._0._1 - _v12._1._1)
+                             ,_1: Basics.toFloat(_v12._1._0 - _v12._0._0)};}
+                   break;}
+              break;}
+         _E.Case($moduleName,
+         "on line 46, column 39 to 75");
+      }();
+   };
+   var distance = F2(function (_v20,
+   _v21) {
+      return function () {
+         switch (_v21.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v20.ctor)
+                 {case "_Tuple2":
+                    return function () {
+                         var b = _v21._1 - _v20._1;
+                         var a = _v21._0 - _v20._0;
+                         return Basics.sqrt(Math.pow(a,
+                         2) + Math.pow(b,2));
+                      }();}
+                 _E.Case($moduleName,
+                 "between lines 39 and 41");
+              }();}
+         _E.Case($moduleName,
+         "between lines 39 and 41");
+      }();
+   });
+   var angle = F2(function (_v28,
+   _v29) {
+      return function () {
+         switch (_v29.ctor)
+         {case "_Tuple2":
+            return function () {
+                 switch (_v28.ctor)
+                 {case "_Tuple2":
+                    return A2(Basics.atan2,
+                      Basics.toFloat(_v28._1 - _v29._1),
+                      Basics.toFloat(_v29._0 - _v28._0));}
+                 _E.Case($moduleName,
+                 "on line 29, column 25 to 68");
+              }();}
+         _E.Case($moduleName,
+         "on line 29, column 25 to 68");
+      }();
+   });
+   var lineSegAngle = Basics.uncurry(angle);
+   _elm.Touch.Util.values = {_op: _op
+                            ,angle: angle
+                            ,lineSegAngle: lineSegAngle
+                            ,distance: distance
+                            ,lineSegToVector2: lineSegToVector2
+                            ,dot: dot
+                            ,isTap: isTap
+                            ,tupFromRec: tupFromRec};
+   return _elm.Touch.Util.values;
+};Elm.Touch = Elm.Touch || {};
+Elm.Touch.Types = Elm.Touch.Types || {};
+Elm.Touch.Types.make = function (_elm) {
+   "use strict";
+   _elm.Touch = _elm.Touch || {};
+   _elm.Touch.Types = _elm.Touch.Types || {};
+   if (_elm.Touch.Types.values)
+   return _elm.Touch.Types.values;
+   var _N = Elm.Native,
+   _U = _N.Utils.make(_elm),
+   _L = _N.List.make(_elm),
+   _A = _N.Array.make(_elm),
+   _E = _N.Error.make(_elm),
+   $moduleName = "Touch.Types";
+   var Basics = Elm.Basics.make(_elm);
+   var Color = Elm.Color.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Collage = Elm.Graphics.Collage.make(_elm);
+   var Graphics = Graphics || {};
+   Graphics.Element = Elm.Graphics.Element.make(_elm);
+   var List = Elm.List.make(_elm);
+   var Maybe = Elm.Maybe.make(_elm);
+   var Native = Native || {};
+   Native.Json = Elm.Native.Json.make(_elm);
+   var Native = Native || {};
+   Native.Ports = Elm.Native.Ports.make(_elm);
+   var Signal = Elm.Signal.make(_elm);
+   var String = Elm.String.make(_elm);
+   var Text = Elm.Text.make(_elm);
+   var Time = Elm.Time.make(_elm);
+   var _op = {};
+   var ThreeFinger = {ctor: "ThreeFinger"};
+   var TwoFinger = {ctor: "TwoFinger"};
+   var OneFinger = {ctor: "OneFinger"};
+   var Tap = F2(function (a,b) {
+      return {ctor: "Tap"
+             ,_0: a
+             ,_1: b};
+   });
+   var Swipe = F2(function (a,b) {
+      return {ctor: "Swipe"
+             ,_0: a
+             ,_1: b};
+   });
+   _elm.Touch.Types.values = {_op: _op
+                             ,Swipe: Swipe
+                             ,Tap: Tap
+                             ,OneFinger: OneFinger
+                             ,TwoFinger: TwoFinger
+                             ,ThreeFinger: ThreeFinger};
+   return _elm.Touch.Types.values;
+};</script></head><body><script type="text/javascript">Elm.fullscreen(Elm.Main)</script><noscript></noscript></body></html>
